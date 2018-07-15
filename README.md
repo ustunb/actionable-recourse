@@ -40,7 +40,9 @@ An `ActionSet` provides the basic blueprint on how variables can be changed to f
 Properties for each variable include:
 
 a. _Immutability_: whether the variable can be changed. `Age`, `gender` and `ethnicity`, for instance, are examples of variables that might be considered immutable in a dataset. (By default, all variables are considered mutable).
+
 b. _Bounds_: How much each variable can change. Bounds can be either `bound_type={ "percentile", "relative", "absolute" }`, where `percentile` bounds would be set to the kth percentile of the observed data, `relative` is relative to the range of the data, and `absolute` is a fixed number.
+
 c. _Step size_: the level of discretization for the optimizer to scan. Smaller step sizes will provide a more granular `flipset` while larger step sizes will run faster. `Step_size` can also be set via `{"percentile", "relative" and "absolute"}` specifications.
 
 __Step 2:__ Initialize a `FlipsetBuilder` object for each negatively-classified datapoint:
