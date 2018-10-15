@@ -1,21 +1,19 @@
 This repository contains a toolkit to evaluate the recourse of linear classification models. 
 
+#### Overview of Tools
+
 Given a linear classification models, our tools can: 
 
 1. Measure the feasibility and difficulty of recourse in a target population
 2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
-## Background
-
-### What Is Recourse?
+#### Background on Recourse?
 
 Recourse is the ability of a person to change the decision of the model through actionable input variables (e.g., income vs. gender, age, or marital status). 
 
-### Why Care?
-
 Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change the input variables of the model in a way that will guarantee approval. Otherwise, this person will be denied the loan so long as the model is deployed, and -- more importantly -- will lack agency over a decision that affects their livelihood. 
 
-### Paper
+### Papers
 
 [Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
      
