@@ -1,4 +1,9 @@
-This repository contains software tools to evaluate linear classification models in terms of recourse. Given a fixed linear classifier, our tools can: (i) measure the feasibility and difficulty of recourse in a target population; and (ii) generate a list of actionable changes for an individual to obtain a desired outcome.
+This repository contains a toolkit to evaluate the recourse of linear classification models. 
+
+Given a linear classification models, our tools can: 
+
+1. Measure the feasibility and difficulty of recourse in a target population
+2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
 ## Background
 
@@ -55,8 +60,10 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 
 **NOTE: THIS PACKAGE IS CURRENTLY UNDER ACTIVE DEVELOPMENT. THE CODE MAY CHANGE WITH EACH COMMIT.** 
 
-- Support for open-source MIP solver (we're down to [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/)
+- Support for open-source MIP solver (either [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/))
 - Support for categorical variables in `ActionSet`
-- [Integration into AI360](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
-- Support to audit recourse for decision lists and rule lists
-- [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
+- Refactoring for future development 
+- Support for Boolean models such as decision lists, rule lists etc.
+- Comparatabilty with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
+- [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+
