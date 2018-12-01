@@ -6,7 +6,7 @@ Given a linear classifier, our tools allow users to:
 1. Measure the feasibility and difficulty of recourse in a target population
 2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
-### Background
+## Background
 
 #### What is recourse? 
 
