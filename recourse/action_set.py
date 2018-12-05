@@ -1,12 +1,13 @@
+import os
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
-from tabulate import tabulate
 from recourse.debug import ipsh
 
-# todo: save/load functions
+# todo: save function
+# todo: load function
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 
@@ -139,7 +140,10 @@ class _BoundElement(object):
         return "(%r, %r, %r)" % (self._lb, self._ub, self._bound_type)
 
 
-class ActionElement(object):
+class _ActionElement(object):
+    """
+    Internal class to store the properties of actions in each dimension. Used by ActionSet.
+    """
 
     _default_check_flag = False
     _valid_step_types = {'relative', 'absolute'}
@@ -298,6 +302,7 @@ class ActionElement(object):
         assert isinstance(b, _BoundElement), 'bounds must be a list/tuple of the form (lb, ub) or (lb, ub, bound_type)'
         self._bounds = b
 
+
     @property
     def lb(self):
         return self._bounds.lb
@@ -356,6 +361,7 @@ class ActionElement(object):
         assert step_type in self._valid_step_types, '`step_type` is %r (must be %r)' % (step_type, self._valid_step_types)
         self._step_type = str(step_type)
 
+
     @property
     def step_direction(self):
         return self._step_direction
@@ -365,6 +371,7 @@ class ActionElement(object):
     def step_direction(self, step_direction):
         assert np.isfinite(step_direction), "step_direction must be finite"
         self._step_direction = np.sign(step_direction)
+
 
     @property
     def step_size(self):
@@ -378,6 +385,7 @@ class ActionElement(object):
         if self._step_type == 'relative':
             assert np.less_equal(s, 1.0)
         self._step_size = float(s)
+
 
     @property
     def grid(self):
@@ -532,12 +540,12 @@ class _ActionSlice(object):
 
         a = ActionSet(...)
         a[1:2].ub = 2
-
     """
 
     def __init__(self, action_elements):
         self._indices = {e.name: j for j, e in enumerate(action_elements)}
         self._elements = {e.name: e for e in action_elements}
+
 
     def __getattr__(self, name):
         if name in ('_indices', '_elements'):
@@ -545,11 +553,12 @@ class _ActionSlice(object):
         else:
             return [getattr(self._elements[n], name) for n, j in self._indices.items()]
 
+
     def __setattr__(self, name, value):
         if name in ('_indices', '_elements'):
             object.__setattr__(self, name, value)
         else:
-            assert hasattr(ActionElement, name)
+            assert hasattr(_ActionElement, name)
             attr_values = _expand_values(value, len(self._indices))
             for n, j in self._indices.items():
                 setattr(self._elements[n], name, attr_values[j])
@@ -569,13 +578,18 @@ class ActionSet(object):
         """
         Container of ActionElement for each variable in a dataset.
 
-        :param X: numpy.matrix of pandas.DataFrame with values of each feature (must contain at least 1 row and 1 column)
+        Requirements:
+
+        :param df pandas.DataFrame containing features as columns and samples as rows (must contain at least 1 row and 1 column)
+
+        or
+
+        :param X: numpy matrix containing features as columns and samples as rows  (must contain at least 1 row and 1 column)
         :param names: list of strings containing variable names when X is array-like
 
-        # optional named arguments
+        # optional keyword arguments
 
         :param custom_bounds: dictionary of custom bounds
-
         :param default_bounds: tuple containing information for default bounds
                                 - (lb, ub, type) where type = 'percentile' or 'absolute';
                                 - (lb, ub)  if type is omitted, it is assumed to be 'absolute'
@@ -614,10 +628,10 @@ class ActionSet(object):
         indices = {}
         elements = {}
         for j, n in enumerate(names):
-            elements[n] = ActionElement(name = n,
-                                        values = X[:, j],
-                                        step_type = default_step_type,
-                                        bounds = custom_bounds.get(n, default_bounds))
+            elements[n] = _ActionElement(name = n,
+                                         values = X[:, j],
+                                         step_type = default_step_type,
+                                         bounds = custom_bounds.get(n, default_bounds))
             indices[n] = j
 
         self._names = [str(n) for n in names]
@@ -631,7 +645,6 @@ class ActionSet(object):
         return len(self._names)
 
 
-    # iterators
     def __iter__(self):
         return (self._elements[n] for n in self._names)
 
@@ -663,13 +676,13 @@ class ActionSet(object):
 
     def __setitem__(self, name, e):
 
-        assert isinstance(e, ActionElement), 'ActionSet can only contain ActionElements'
+        assert isinstance(e, _ActionElement), 'ActionSet can only contain ActionElements'
         assert name in self._names, 'no variable with name %s in ActionSet'
         self._elements.update({name: e})
 
 
     def __getattribute__(self, name):
-        if name[0] == '_' or not hasattr(ActionElement, name):
+        if name[0] == '_' or not hasattr(_ActionElement, name):
             return object.__getattribute__(self, name)
         else:
             return [getattr(self._elements[n], name) for n, j in self._indices.items()]
@@ -677,7 +690,7 @@ class ActionSet(object):
 
     def __setattr__(self, name, value):
         if hasattr(self, '_elements'):
-            assert hasattr(ActionElement, name)
+            assert hasattr(_ActionElement, name)
             attr_values = _expand_values(value, len(self))
             for n, j in self._indices.items():
                 self._elements[n].__setattr__(name, attr_values[j])
@@ -694,6 +707,7 @@ class ActionSet(object):
 
     @check_flag.setter
     def check_flag(self, flag):
+        assert isinstance(flag, bool)
         self._check_flag = bool(flag)
 
 
@@ -702,7 +716,7 @@ class ActionSet(object):
         if self._check_flag:
             elements = self._elements.values()
             aligned = [e.aligned for e in elements]
-            assert all([isinstance(e, ActionElement) for e in elements])
+            assert all([isinstance(e, _ActionElement) for e in elements])
             assert all(aligned) or (not any(aligned))
         return True
 
@@ -723,6 +737,7 @@ class ActionSet(object):
         else:
             raise AttributeError('print_flag must be boolean or None')
 
+
     def __str__(self):
         return self.tabulate()
 
@@ -742,22 +757,121 @@ class ActionSet(object):
         t.add_column("flip direction", self.flip_direction, align = "r")
         t.add_column("grid size", self.size, align = "r")
         t.add_column("step type", self.step_type, align = "r")
+        t.add_column("step size", self.step_size, align = "r")
         t.add_column("lb", self.lb, align = "r")
         t.add_column("ub", self.ub, align = "r")
         return str(t)
 
+
+    @property
+    def df(self):
+        """
+        :return: data frame containing key action set parameters
+        """
+        df = pd.DataFrame({'name': self.name,
+                           'variable_type': self.variable_type,
+                           'lb': self.lb,
+                           'ub': self.ub,
+                           'grid_size': self.size,
+                           'step_size': self.step_size,
+                           'mutable': self.mutable,
+                           'actionable': self.actionable,
+                           'step_direction': self.step_direction,
+                           'flip_direction': self.flip_direction})
+        return df
+
+
+    def to_latex(self):
+        """
+        :return: formatted latex table summarizing the action set for publications
+        """
+        tex_binary_str = '$\{0,1\}$'
+        tex_integer_str = '$\mathbb{Z}$'
+        tex_real_str = '$\mathbb{R}$'
+
+        df = self.df
+        df = df.drop(['actionable', 'flip_direction'], axis = 1)
+
+        new_types = [tex_real_str] * len(df)
+        new_ub = ['%1.1f' % v for v in df['ub'].values]
+        new_lb = ['%1.1f' % v for v in df['lb'].values]
+
+        for i, t in enumerate(df['variable_type']):
+            ub, lb = df['ub'][i], df['lb'][i]
+            if t == 'int':
+                new_ub[i] = '%d' % int(ub)
+                new_lb[i] = '%d' % int(lb)
+                new_types[i] = tex_binary_str if lb == 0 and ub == 1 else tex_integer_str
+
+        df['variable_type'] = new_types
+        df['ub'] = new_ub
+        df['lb'] = new_lb
+
+        df['actionable'] = df['mutable'].map({False: 'no', True: 'yes'})
+        up_idx = df['mutable'] & df['step_direction'] == 1
+        dn_idx = df['mutable'] & df['step_direction'] == -1
+        df.loc[up_idx, 'actionable'] = 'only increases'
+        df.loc[dn_idx, 'actionable'] = 'only decreases'
+
+        df = df.drop(['mutable', 'step_direction'], axis = 1)
+
+        df = df.rename(columns = {
+            'name': 'Name',
+            'grid_size': '\# Actions',
+            'variable_type': 'Type',
+            'actionable': 'Mutability',
+            'lb': 'LB',
+            'ub': 'UB',
+            })
+
+        table = df.to_latex(index = False, escape = False)
+        return table
+
+
     ### save / load ####
 
     @staticmethod
-    def load(self, file_name):
-        # todo: load actionset from file on disk
+    def load(file_name):
+
         raise NotImplementedError()
+
+        try:
+            import pickle
+        except ImportError:
+            import cPickle as pickle
+
+        assert os.path.isfile(file_name), 'file %s not found' % file_name
+
+        with open(file_name, 'rb') as infile:
+            file_contents = pickle.load(infile)
+        assert 'elements' in file_contents
+        assert 'indices' in file_contents
+
+        self._elements = self._elements
+        self._indices = self._indices
+        self._print_flag = file_contents.get('print_flag', self._default_print_flag)
+        self._check_flag = file_contents.get('print_flag', self._default_check_flag)
+        return self
 
 
     def save(self, file_name, overwrite = True):
-        # todo: save to disk
-        self._check_rep()
+
         raise NotImplementedError()
+
+        try:
+            import pickle
+        except ModuleNotFoundError:
+            import cPickle as pickle
+
+        if overwrite is False:
+            if os.path.isfile(file_name):
+                raise IOError('file %s already exist on disk' % file_name)
+
+        self._check_rep()
+        file_contents = {'elements': self._elements, 'indices': self._indices, 'print_flag': self.print_flag, 'check_flag': self.check_flag}
+        with open(file_name, 'wb') as outfile:
+            pickle.dump(file_contents, outfile, protocol = pickle.HIGHEST_PROTOCOL)
+        return True
 
 
     ### core methods ###
@@ -769,6 +883,7 @@ class ActionSet(object):
         """
         assert isinstance(coefficients, (list, np.ndarray))
         assert len(self) == len(coefficients)
+        assert np.all(np.isfinite(coefficients))
 
         flips = np.sign(np.array(coefficients).flatten())
         for n, j in self._indices.items():
@@ -798,6 +913,7 @@ class ActionSet(object):
             return {n: v[0] for n, v in output.items()}, {n: v[1] for n, v in output.items()}
 
         return output
+
 
 ### Helper Functions
 

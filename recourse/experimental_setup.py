@@ -10,12 +10,12 @@ import time
 import pprint
 
 # Formatting Options
-
 np.set_printoptions(precision = 4, suppress = False)
+pd.set_option('display.max_columns', 30)
+pd.options.mode.chained_assignment = None
 pp = pprint.PrettyPrinter(indent = 4)
 
 ### Helper Functions for Experimental Script
-
 
 def undo_coefficient_scaling(clf = None, coefficients = None, intercept = 0.0, scaler = None):
     """

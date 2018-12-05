@@ -7,11 +7,9 @@ from recourse.action_set import ActionSet
 from recourse.cplex_helper import set_mip_parameters, set_cpx_display_options, set_mip_time_limit, set_mip_node_limit, toggle_mip_preprocessing, DEFAULT_CPLEX_PARAMETERS
 from recourse.debug import ipsh
 import pandas as pd
-# todo edit credit to increments of 50s
+
 # todo enumeration strategy
 # todo method for enumeration
-# todo tabulate
-
 # todo improve cost function type implementation ('maxpct' / 'logpct' / 'euclidean')
 # todo base_mip / rebuild mip when required
 
@@ -140,15 +138,6 @@ class FlipsetBuilder(object):
 
     def tabulate(self):
         return str(self.action_set)
-        # t = PrettyTable()
-        # t.add_column("name", self.name, align = "r")
-        # t.add_column("vtype", self.actionable, align = "r")
-        # t.add_column("step direction", self.step_direction, align = "r")
-        # t.add_column("flip direction", self.flip_direction, align = "r")
-        # t.add_column("actionable", self.actionable, align = "r")
-        # t.add_column("grid size", self.size, align = "r")
-        # t.add_column("lb", self.lb, align = "r")
-        # t.add_column("ub", self.ub, align = "r")
 
 
     #### immutable properties ####
@@ -617,6 +606,7 @@ class FlipsetBuilder(object):
 
         return info
 
+
     @property
     def infeasible_info(self):
 
@@ -955,27 +945,33 @@ class Flipset(object):
     def n_variables(self):
         return self._n_variables
 
+
     @property
     def variable_names(self):
         return list(self._variable_names)
+
 
     @property
     def coefficients(self):
         return self._coefs
 
+
     @property
     def intercept(self):
         return self._intercept
 
+
     @property
     def items(self):
         return self._items
+
 
     @property
     def yhat(self):
         return self._intercept + np.dot(self._coefs, self._x)
 
     #### built ins ####
+
 
     def __len__(self):
         return len(self._items)
@@ -1026,6 +1022,7 @@ class Flipset(object):
         assert item['feasible'], 'item must be feasible'
         return item
 
+
     def item_to_df_row(self, item):
         x = self.x
         a = item['actions']
@@ -1046,14 +1043,17 @@ class Flipset(object):
 
         return row
 
+
     def _update_df(self, items):
         if len(items) > 0:
             row_data = list(map(lambda item: self.item_to_df_row(item), items))
             self._df = self._df.append(row_data, ignore_index = True)[self._df.columns.tolist()]
             self.sort()
 
+
     def view(self):
         return self._df
+
 
     def to_latex(self, name_formatter = '\\textit'):
 

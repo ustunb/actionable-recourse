@@ -1,4 +1,3 @@
-# import scripts to setup experiments
 from recourse.experimental_setup import *
 from recourse.plotting import *
 from recourse.action_set import ActionSet
@@ -22,6 +21,7 @@ settings = {
     'force_rational_actions': False,
     'plot_audits': True,
     }
+# results_dir = '~/Projects/berk-research/recourse/tex/figure'
 
 # file names
 output_dir = '%s/%s' % (results_dir, settings['data_name'])
@@ -118,8 +118,6 @@ flipset = Flipset(x = fb.x, coefficients = coefficients, intercept = intercept, 
 items = fb.populate(enumeration_type = 'distinct_subsets', total_items = 14)
 flipset.add(items)
 print(flipset.to_latex()) #creates latex table for paper
-
-
 print(flipset.view()) # displays to screen
 
 #

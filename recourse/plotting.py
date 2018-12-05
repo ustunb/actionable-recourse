@@ -101,9 +101,6 @@ def create_coefficient_path_plot(coefs_df, fig_size = (10, 8), label_coefs = Tru
     return f, ax
 
 
-
-
-
 #### HELPER FUNCTIONS
 
 
@@ -135,6 +132,7 @@ def fix_font_sizes(ax):
         tick_text.set_fontsize(SMALL_SIZE)
 
     return ax
+
 
 def label_line(line, x, label=None, align=True, max_length = 30, **kwargs):
     # adapted from https://github.com/cphyc/matplotlib-label-lines
