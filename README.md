@@ -1,19 +1,22 @@
-This repository contains a toolkit to evaluate the recourse of linear classification models. 
 
-#### Overview of Tools
+This repository contains a Python library to evaluate recourse in linear classification models. 
 
-Given a linear classification models, our tools can: 
+Given a linear classifier, our tools allow users to:
 
 1. Measure the feasibility and difficulty of recourse in a target population
 2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
-#### Background on Recourse?
+## Background
 
-Recourse is the ability of a person to change the decision of the model through actionable input variables (e.g., income vs. gender, age, or marital status). 
+#### What is recourse? 
 
-Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change the input variables of the model in a way that will guarantee approval. Otherwise, this person will be denied the loan so long as the model is deployed, and -- more importantly -- will lack agency over a decision that affects their livelihood. 
+*Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, ethnicity, marital status). 
 
-### Papers
+#### Why should we care?
+
+Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change its input variables in order to be approval. Otherwise, they will be denied the loan so long as the model is deployed, and lack agency over a decision that affects their livelihood. 
+
+#### Paper
 
 [Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
      
@@ -53,8 +56,7 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-
-## Development Timeline
+## Development Roadmap
 
 **NOTE: THIS PACKAGE IS CURRENTLY UNDER ACTIVE DEVELOPMENT. THE CODE MAY CHANGE WITH EACH COMMIT.** 
 
