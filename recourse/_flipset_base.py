@@ -64,7 +64,6 @@ class _FlipsetBase(object):
         # initialize Cplex MIP
         self._mip = None
         self._mip_cost_type = kwargs.get('mip_cost_type', self._default_mip_cost_type)
-        self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
         self._mip_indices = dict()
         self._min_items = 0
         self._max_items = self.n_actionable
@@ -184,6 +183,7 @@ class _FlipsetBase(object):
         x = np.array(x, dtype = np.float_).flatten()
         assert len(x) == self.n_variables
         self._x = x
+        ## TODO why is this here?? mixed functionality
         self.build_mip()
 
     #### model ####

@@ -10,7 +10,6 @@ import pyomo
 import pyomo.core
 import pyomo.opt
 import pyomo.environ
-import numpy as np
 
 # table
 # item | change_in_score | change_in_min_pctile | cost
@@ -19,7 +18,7 @@ import numpy as np
 
 class _FlipsetBuilderPyomo(_FlipsetBase):
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
-
+        self.built=False
         super().__init__(
             action_set=action_set,
             coefficients=coefficients,
@@ -27,12 +26,13 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
             x=x,
             **kwargs
         )
-        self.built=False
         return self
 
+    def _check_mip_build_info(self, build_info):
+        ## TODO
+        return True
 
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
-
         build_info, indices = super()._get_mip_build_info(
             cost_function_type=cost_function_type, validate=validate)
 
@@ -50,26 +50,7 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
 
         return output_build_info, indices
 
-    def fit(self):
-        if not self.built:
-            self.build_model()
-
-        instance = self.instantiate_model(c, a, x, epsilon)
-        opt = pyomo.opt.SolverFactory('cbc')
-        results = opt.solve(instance)
-
-        ## add check
-        output = {}
-        for i in instance.JK:
-            output[i] = {
-                'a': instance.a[i],
-                'u': instance.u[i](),
-                'c': instance.c[i]
-            }
-        output['max_cost'] = instance.max_cost()
-        return output
-
-    def build_abstract_model(self):
+    def build_mip(self):
         """Build the model <b>object</b>."""
         self.model = AbstractModel()
 
@@ -123,10 +104,10 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
         self.built = True
 
 
-    def build_mip(self):
+    def instantiate_mip(self):
         build_info, indices = self._get_mip_build_info()
         if not self.built:
-            self.build_abstract_model()
+            self.build_mip()
 
         a = build_info['a']
         a_tuples = {}
@@ -164,7 +145,7 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
         return instance
 
     def fit(self):
-        instance = self.instantiate_model()
+        instance = self.instantiate_mip()
         opt = pyomo.opt.SolverFactory('cbc')
         results = opt.solve(instance)
 

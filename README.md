@@ -67,3 +67,12 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 - Comparatabilty with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 
+
+### Pyomo and CBC
+
+* Run the Pyomo installer in the command line: pyomo install-extras 
+* Or, if you're on windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+* Download COIN-OR from: https://www.coin-or.org/download/binary/OptimizationSuite/
+* Make sure to update your `$PATH` variable to point to the correct location:
+* For example: `export PATH=PATH:/usr/local/bin/Cbc-2.8.5`
+(* The windows installer should do this for you.)

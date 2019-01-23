@@ -32,11 +32,12 @@ class _FlipsetBuilderCPLEX(_FlipsetBase):
         :param params: parameters for flipset form/flipset generation
                        (e.g. type of cost function to use / max items etc.)
         """
+        # initialize Cplex MIP
+        self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
+
         ## initialize base class
         super().__init__(action_set=action_set, coefficients=coefficients, intercept=intercept, x=x, **kwargs)
 
-        # initialize Cplex MIP
-        self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
         return self
 
 
