@@ -1,26 +1,14 @@
+from recourse.audit import Audit
 import pandas as pd
-import numpy as np
- # import matplotlib.pyplot as plt
-from sklearn.linear_model import LogisticRegressionCV
-from sklearn.model_selection import KFold
-from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
-import time
-import os
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import numpy as np
+import pickle
 
 from recourse.path import *
 from recourse.action_set import ActionSet
 from recourse.flipset import FlipsetBuilder
-import seaborn.apionly as sns
 
-# os.listdir('data')
-data_dir = 'data'
 data_name = 'german'
 data_file = os.path.join(data_dir, '%s_processed.csv' % data_name)
 demo_results_dir = os.path.join(results_dir, data_name)
@@ -38,8 +26,6 @@ X = (german_df.drop('GoodCustomer', axis=1)
      .drop(['PurposeOfLoan', 'Gender', 'OtherLoansAtStore'], axis=1)
      )
 
-
-
 ## set up actionset
 gender_weight = german_df.assign(c=1).groupby('Gender')['c'].transform(lambda s: s*1./len(s))
 X_gender_balanced = X.sample(n = len(X)*3, replace=True, weights=gender_weight)
@@ -54,8 +40,6 @@ action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
 action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 # action_set['isMale'].mutable = False
 
-
-## dummy model
 clf = LogisticRegression(max_iter=1000, solver='lbfgs')
 grid = GridSearchCV(
     clf, param_grid={'C': np.logspace(-4, 3)},
@@ -66,56 +50,15 @@ grid = GridSearchCV(
 grid.fit(X, y)
 clf = grid.best_estimator_
 
-scores = pd.Series(clf.predict_proba(X)[:, 1])
-coefficients = clf.coef_[0]
-intercept = clf.intercept_[0]
-action_set.align(coefficients=coefficients)
-# p = .8
-p = scores.median()
-denied_individuals = scores.loc[lambda s: s<=p].index
+pickle.dump(action_set, open('scripts/temp_results/audit_action_set.pkl', 'wb'))
+pickle.dump(clf, open('scripts/temp_results/audit_clf.pkl', 'wb'))
 
 
-pickle.dump(action_set, open('scripts/temp_results/action_set.pkl', 'wb'))
-pickle.dump(scores, open('scripts/temp_results/scores.pkl', 'wb'))
-pickle.dump(clf, open('scripts/temp_results/clf.pkl', 'wb'))
+###
+action_set = pickle.load(open('scripts/temp_results/audit_action_set.pkl', 'rb'))
+clf = pickle.load(open('scripts/temp_results/audit_clf.pkl', 'rb'))
 
-### load cache
-##
-##
-action_set = pickle.load(open('scripts/temp_results/action_set.pkl', 'rb'))
-scores = pickle.load(open('scripts/temp_results/scores.pkl', 'rb'))
-clf = pickle.load(open('scripts/temp_results/clf.pkl', 'rb'))
-coefficients = clf.coef_[0]
-intercept = clf.intercept_[0]
-p = scores.median()
-denied_individuals = scores.loc[lambda s: s <= p].index
-
-idx = denied_individuals[5]
-x = X.iloc[idx].values
-t_cplex = FlipsetBuilder(
-    optimizer='cplex',
-    action_set=action_set,
-    coefficients=coefficients,
-    intercept=intercept- (np.log(p / (1. - p))),
-    x=x
-)
-cplex_output = t_cplex.fit()
-cplex_output_df = pd.DataFrame(cplex_output)[['actions', 'costs']]
-print(cplex_output_df)
-
-t_pyomo = FlipsetBuilder(
-    optimizer='cbc',
-    action_set=action_set,
-    coefficients=coefficients,
-    intercept=intercept- (np.log(p / (1. - p))),
-    x=x
-)
-pyo_output = t_pyomo.fit()
-max_cost = pyo_output.pop('max_cost', None)
-pyo_output_df = (pd.DataFrame
- .from_dict(pyo_output, orient='index')
- .loc[lambda df: df['u'] == 1]
-)
-print(pyo_output_df)
-
-
+##############
+# run audit
+audit = Audit(optimizer="cplex", clf=clf, dataset=X.values, actionset=action_set, decision_threshold=.8)
+audit.run_audit(num_cases=10)

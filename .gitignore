@@ -1,0 +1,3 @@
+*.egg-info
+scripts/temp_results
+scripts/temp_results/*

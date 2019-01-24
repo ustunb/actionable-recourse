@@ -129,6 +129,7 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
             for j in range(len(c[i])):
                 u_tuples[(i, j)] = False
 
+        epsilon = min(indices['cost_df']) / sum(indices['cost_ub'])
         data = {None: {
             'J':  {None: list(range(len(a)))},
             'K': {i: list(range(len(a[i]) or 1)) for i in range(len(a)) },
@@ -137,7 +138,7 @@ class _FlipsetBuilderPyomo(_FlipsetBase):
             'u': u_tuples,
             'w': {i: coef for i, coef in enumerate(self.coefficients)},
             'y_pred': {None: self.score()},
-            'epsilon': {None: build_info['epsilon']},
+            'epsilon': {None: epsilon},
             'max_cost': {None: -1000}
         }}
 
