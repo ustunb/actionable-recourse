@@ -1,6 +1,3 @@
-# Author: Berk Ustun | www.berkustun.com
-# License: BSD 3 clause
-
 import sys
 import time
 import numpy as np

@@ -13,7 +13,6 @@ import pickle
 from recourse.path import *
 from recourse.action_set import ActionSet
 from recourse.flipset import FlipsetBuilder
-import seaborn.apionly as sns
 
 # os.listdir('data')
 data_dir = 'data'

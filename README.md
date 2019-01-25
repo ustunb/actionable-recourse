@@ -1,18 +1,13 @@
+`recourse` is a python library to evaluate recourse in classification models. 
 
-This repository contains a Python library to evaluate recourse in linear classification models. 
-
-Given a linear classifier, our tools allow users to:
+Letur tools let users to:
 
 1. Measure the feasibility and difficulty of recourse in a target population
 2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
 ## Background
 
-#### What is recourse? 
-
 *Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, ethnicity, marital status). 
-
-#### Why should we care?
 
 Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change its input variables in order to be approval. Otherwise, they will be denied the loan so long as the model is deployed, and lack agency over a decision that affects their livelihood. 
 

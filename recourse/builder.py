@@ -1029,7 +1029,6 @@ class _RecourseBuilderPyomo(_RecourseBase):
         return output
 
 
-
 class RecourseBuilder(_RecourseBase):
 
 
