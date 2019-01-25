@@ -9,11 +9,7 @@ from sklearn.model_selection import GridSearchCV
 import time
 import os
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
+import pickle
 from recourse.path import *
 from recourse.action_set import ActionSet
 from recourse.flipset import FlipsetBuilder
@@ -57,14 +53,13 @@ action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 
 ## dummy model
 clf = LogisticRegression(max_iter=1000, solver='lbfgs')
-grid = GridSearchCV(
-    clf, param_grid={'C': np.logspace(-4, 3)},
-    cv=10,
-    scoring='roc_auc',
-    return_train_score=True
-)
-grid.fit(X, y)
-clf = grid.best_estimator_
+# grid = GridSearchCV(
+#     clf, param_grid={'C': np.logspace(-4, 3)},
+#     cv=10,
+#     scoring='roc_auc',
+#     return_train_score=True
+# )
+clf.fit(X, y)
 
 scores = pd.Series(clf.predict_proba(X)[:, 1])
 coefficients = clf.coef_[0]
@@ -74,23 +69,16 @@ action_set.align(coefficients=coefficients)
 p = scores.median()
 denied_individuals = scores.loc[lambda s: s<=p].index
 
-
-pickle.dump(action_set, open('scripts/temp_results/action_set.pkl', 'wb'))
-pickle.dump(scores, open('scripts/temp_results/scores.pkl', 'wb'))
-pickle.dump(clf, open('scripts/temp_results/clf.pkl', 'wb'))
-
 ### load cache
-##
-##
-action_set = pickle.load(open('scripts/temp_results/action_set.pkl', 'rb'))
-scores = pickle.load(open('scripts/temp_results/scores.pkl', 'rb'))
-clf = pickle.load(open('scripts/temp_results/clf.pkl', 'rb'))
 coefficients = clf.coef_[0]
 intercept = clf.intercept_[0]
 p = scores.median()
 denied_individuals = scores.loc[lambda s: s <= p].index
 
 idx = denied_individuals[5]
+
+
+
 x = X.iloc[idx].values
 t_cplex = FlipsetBuilder(
     optimizer='cplex',
