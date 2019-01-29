@@ -6,12 +6,9 @@ from recourse.action_set import ActionSet
 from recourse.cplex_helper import set_mip_parameters, set_cpx_display_options, set_mip_time_limit, set_mip_node_limit, toggle_mip_preprocessing, DEFAULT_CPLEX_PARAMETERS
 from collections import defaultdict
 from cplex import Cplex, SparsePair
-from pyomo.core import *
-from pyomo import *
-import pyomo
-import pyomo.core
-import pyomo.opt
-import pyomo.environ
+from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
+from pyomo.opt import SolverFactory
+import time
 
 
 _SOLVER_TYPE_CPX = 'cplex'
@@ -1014,8 +1011,10 @@ class _RecourseBuilderPyomo(_RecourseBase):
 
     def fit(self):
         instance = self.instantiate_mip()
-        opt = pyomo.opt.SolverFactory('cbc')
-        results = opt.solve(instance)
+        opt = SolverFactory('cbc')
+        start = time.time()
+        opt.solve(instance)
+        end = time.time() - start
 
         ## add check
         output = {}
@@ -1025,8 +1024,14 @@ class _RecourseBuilderPyomo(_RecourseBase):
                 'u': instance.u[i](),
                 'c': instance.c[i]
             }
-        output['max_cost'] = instance.max_cost()
+        output_df = pd.DataFrame(output).loc[lambda df: df['u']==1]
+        final_output = {}
+        final_output['total_cost'] = instance.max_cost()
+        final_output['actions'] = output_df['a'].values
+        final_output['costs'] = output_df['c'].values
+        final_output['runtime'] = end
         return output
+
 
 
 class RecourseBuilder(_RecourseBase):
