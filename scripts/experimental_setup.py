@@ -1,11 +1,9 @@
 import numpy as np
 import pandas as pd
-from recourse.path import *
-from recourse.helper_functions import print_log
-from recourse.flipset import FlipsetBuilder
+from scripts.helper_functions import print_log
+from recourse.recourse_problem import RecourseBuilder
 
 from sklearn.preprocessing import StandardScaler
-import pickle
 import time
 import pprint
 

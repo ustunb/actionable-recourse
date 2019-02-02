@@ -1,10 +1,9 @@
-from recourse.action_set import ActionSet
 from sklearn.model_selection import GridSearchCV
 from copy import copy
 
 # import scripts to setup experiments
-from recourse.experimental_setup import *
-from recourse.plotting import *
+from scripts.experimental_setup import *
+from scripts.plotting import *
 
 # user settings
 settings = {

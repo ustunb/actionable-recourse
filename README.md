@@ -1,18 +1,13 @@
+`recourse` is a python library to evaluate recourse in classification models. 
 
-This repository contains a Python library to evaluate recourse in linear classification models. 
-
-Given a linear classifier, our tools allow users to:
+Letur tools let users to:
 
 1. Measure the feasibility and difficulty of recourse in a target population
 2. Generate a list of actionable changes for an individual to obtain a desired outcome
 
 ## Background
 
-#### What is recourse? 
-
 *Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, ethnicity, marital status). 
-
-#### Why should we care?
 
 Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change its input variables in order to be approval. Otherwise, they will be denied the loan so long as the model is deployed, and lack agency over a decision that affects their livelihood. 
 
@@ -67,3 +62,12 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 - Comparatabilty with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 
+
+### Pyomo and CBC
+
+* Run the Pyomo installer in the command line: pyomo install-extras 
+* Or, if you're on windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+* Download COIN-OR from: https://www.coin-or.org/download/binary/OptimizationSuite/
+* Make sure to update your `$PATH` variable to point to the correct location:
+* For example: `export PATH=PATH:/usr/local/bin/Cbc-2.8.5`
+(* The windows installer should do this for you.)

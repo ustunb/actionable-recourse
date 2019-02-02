@@ -1,13 +1,11 @@
 from math import atan2, degrees
 from datetime import datetime
-
 import numpy as np
 import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 from matplotlib.dates import date2num
-
 import seaborn as sns
 sns.set(style="white", palette="muted", color_codes = True)
 

@@ -1,5 +1,6 @@
 pandas
 cplex
+pyomo
 prettytable
 matplotlib
 seaborn

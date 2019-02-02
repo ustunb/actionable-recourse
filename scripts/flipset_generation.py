@@ -1,5 +1,5 @@
-from recourse.experimental_setup import *
-from recourse.plotting import *
+from scripts.experimental_setup import *
+from scripts.plotting import *
 from recourse.action_set import ActionSet
 from recourse.flipset import Flipset
 

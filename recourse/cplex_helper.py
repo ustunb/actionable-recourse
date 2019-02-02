@@ -1,6 +1,3 @@
-# Author: Berk Ustun | www.berkustun.com
-# License: BSD 3 clause
-
 # This file contains general helper functions for any CPLEX MIP Object
 
 import numpy as np
