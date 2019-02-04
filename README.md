@@ -73,9 +73,9 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 
 **NOTE: THIS PACKAGE IS CURRENTLY UNDER ACTIVE DEVELOPMENT. THE CODE MAY CHANGE WITH EACH COMMIT.** 
 
-- Support for open-source MIP solver (either [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/))
-- Support for categorical variables in `ActionSet`
-- Refactoring for future development 
-- Support for Boolean models such as decision lists, rule lists etc.
-- Comparatabilty with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
+- ~~Refactoring for future development 
+- ~~Support for open-source MIP solver (either [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/))
+- Compatability with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+- Support for categorical variables in `ActionSet`
+- Support for Boolean models such as decision lists and rule lists
