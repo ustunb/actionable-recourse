@@ -1,13 +1,13 @@
-`recourse` is a python library to evaluate recourse in classification models. 
+`recourse` is a python library to check recourse in classification models. 
 
-Letur tools let users to:
+It contains tools to:
 
-1. Measure the feasibility and difficulty of recourse in a target population
-2. Generate a list of actionable changes for an individual to obtain a desired outcome
+1. Generate a list of actionable changes for an individual to obtain a desired outcome
+2. Measure the feasibility and difficulty of recourse in a population of interest
 
 ## Background
 
-*Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, ethnicity, marital status). 
+*Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, marital status). 
 
 Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change its input variables in order to be approval. Otherwise, they will be denied the loan so long as the model is deployed, and lack agency over a decision that affects their livelihood. 
 
@@ -16,11 +16,20 @@ Classification models are often used to make decisions that affect humans: wheth
 [Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
      
 ```
-@article{ustun2018actionable,
-  title={Actionable Recourse in Linear Classification},
-  author={Ustun, Berk and Spangher, Alexander and Liu, Yang},
-  journal={arXiv preprint arXiv:1809.06514},
-  year={2018}
+inproceedings{ustun2019recourse,
+     title = {Actionable Recourse in Linear Classification},
+     author = {Ustun, Berk and Spangher, Alexander and Liu, Yang},
+     booktitle = {Proceedings of the Conference on Fairness, Accountability, and Transparency},
+     series = {FAT* '19},
+     year = {2019},
+     isbn = {978-1-4503-6125-5},
+     location = {Atlanta, GA, USA},
+     pages = {10--19},
+     numpages = {10},
+     url = {http://doi.acm.org/10.1145/3287560.3287566},
+     doi = {10.1145/3287560.3287566},
+     publisher = {ACM},
+     keywords = {accountability, audit, classification, credit scoring, integer programming, recourse},
 }
 ```
 
