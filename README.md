@@ -35,7 +35,7 @@ inproceedings{ustun2019recourse,
 
 ## Installation
 
-Please install from source, as this project is still in development and updating:
+Please install from source, as this project is still in development:
 
 ```
 $ git clone git@github.com:ustunb/actionable-recourse.git
@@ -45,13 +45,13 @@ $ python setup.py
 ### Requirements
 
 - Python 3.5+ 
-- CPLEX 12.6+
+- Pyomo & CBC / CPLEX 12.6+
  
-The code may still work with older versions of Python and CPLEX, but this will not be tested or supported. If you're hesitant about switching to Python 3, check out this [migration guide](https://github.com/arogozhnikov/python3_with_pleasure)  
+The code may still work with older versions of Python and CPLEX, but this will not be tested or supported. 
 
 #### CPLEX 
 
-CPLEX is cross-platform commercial optimization tool with a Python API. It is freely available to students and faculty members at accredited institutions. To get CPLEX:
+CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty members at accredited institutions. To get CPLEX:
 
 1. Register for [IBM OnTheHub](https://ibm.onthehub.com/WebStore/Account/VerifyEmailDomain.aspx)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
@@ -60,10 +60,10 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### Pyomo and CBC
+#### Pyomo & CBC
 
-* Run the Pyomo installer in the command line: pyomo install-extras 
-* Or, if you're on windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+* If you're on Unix, run the Pyomo installer in the command line: `pyomo install-extras`
+* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
 * Download COIN-OR from: https://www.coin-or.org/download/binary/OptimizationSuite/
 * Make sure to update your `$PATH` variable to point to the correct location:
 * For example: `export PATH=PATH:/usr/local/bin/Cbc-2.8.5`
@@ -71,11 +71,7 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 
 ## Development Roadmap
 
-**NOTE: THIS PACKAGE IS CURRENTLY UNDER ACTIVE DEVELOPMENT. THE CODE MAY CHANGE WITH EACH COMMIT.** 
-
-- ~~Refactoring for future development 
-- ~~Support for open-source MIP solver (either [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/))
-- Compatability with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
-- [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 - Support for categorical variables in `ActionSet`
 - Support for Boolean models such as decision lists and rule lists
+- [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
+- [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
