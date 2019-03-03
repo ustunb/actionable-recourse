@@ -10,6 +10,9 @@ doc/datasets/generated/
 ci_scripts/
 skltemplate/
 
+# other
+results/
+
 # jekyll
 *.yml
 .nojekyll
