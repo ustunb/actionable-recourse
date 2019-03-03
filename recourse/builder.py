@@ -972,8 +972,12 @@ class _RecourseBuilderPyomo(RecourseBuilder):
                     sum(m.epsilon * m.u[j, k] * m.c[j, k] for j, k in m.JK) + (1 - m.epsilon) * m.max_cost
             )
 
+        ## set up objective function.
+        if self.mip_cost_type == "max":
+            self.model.g = Objective(rule=obj_rule_max, sense=minimize)
+        else:
+            self.model.g = Objective(rule=obj_rule_percentile, sense=minimize)
         ##
-        self.model.g = Objective(rule=obj_rule_max, sense=minimize)
         self.model.c1 = Constraint(self.model.J, rule=c1Rule)
         self.model.c2 = Constraint(rule=c2Rule)
         self.model.c3 = Constraint(self.model.JK, rule=maxcost_rule)
