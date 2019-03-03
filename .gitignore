@@ -11,7 +11,7 @@ ci_scripts/
 skltemplate/
 
 # other
-results/
+paper/results/
 
 # jekyll
 *.yml
@@ -42,8 +42,8 @@ __pycache__/
 *.so
 
 *.egg-info
-scripts/temp_results
-scripts/temp_results/*
+temp_results
+temp_results/*
 
 # Distribution / packaging
 .Python
