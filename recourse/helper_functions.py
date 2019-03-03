@@ -6,15 +6,18 @@ def parse_classifier_args(**kwargs):
     :return:
     """
     assert 'clf' in kwargs or 'coefficients' in kwargs
+
     if 'clf' in kwargs:
         clf = kwargs.get('clf')
-        w = np.array(clf.coef_)
-        t = float(clf.intercept_)
+        w = clf.coef_
+        t = clf.intercept_
 
     elif 'coefficients' in kwargs:
         w = kwargs.get('coefficients')
         t = kwargs.get('intercept', 0.0)
 
+    w = np.array(w).flatten()
+    t = float(t)
     assert np.isfinite(w).all()
-    assert np.isfinite(float(t))
+    assert np.isfinite(t)
     return w, t
