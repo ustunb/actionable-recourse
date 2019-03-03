@@ -4,68 +4,62 @@ import numpy as np
 from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
 from recourse.action_set import ActionSet
 
-
 class RecourseAuditor(object):
+    """
+    """
 
-    def __init__(self, X, y = None, actionset = None, optimizer = _SOLVER_TYPE_CPX, decision_threshold = None, **clf_args):
+    def __init__(self, action_set, **kwargs):
         """
-        Run an audit on a classifier.
 
-        :param optimizer:
-        :param clf:
-        :param coefficients:
-        :param intercept:
-        :param actionset:
+        :param X:
+        :param action_set:
+        :param solver:
+        :param decision_threshold:
+        :param clf_args:
         """
+
         ## set clf and coefficients
-        self.__parse_clf_args(clf_args)
+        self.__parse_classifier_args(**kwargs)
 
-        ### actionset
-        self.actionset = actionset
-        self.X = X
+        ### action_set
+        assert isinstance(action_set, ActionSet)
+        self.action_set = action_set
 
-        if not self.actionset:
-            warnings.warn("No actionset provided, instantiating with defaults: all features mutable, all features percentile.")
+        if not self.action_set:
             if not self.X:
-                raise("No actionset or X provided.")
-            self.actionset = ActionSet(X = self.X)
-            self.actionset.align(self.coefficients)
+                raise("No action_set or X provided.")
+            self.action_set = ActionSet(X = self.X)
 
-        self.optimizer = optimizer
-        self.decision_threshold = decision_threshold
-
-
-    def __parse_clf_args(self, args):
-
-        assert 'clf' in args or ('coefficients' in args)
-
-        if 'clf' in args:
-
-            clf = args['clf']
-            self.coefficients = np.array(clf.coef_).flatten()
-            self.intercept = float(clf.intercept_)
-
-        elif 'coefficients' in args:
-            self.coefficients = args['coefficients']
-            self.intercept = args['intercept'] if 'intercept' in args else 0.0
+        self.action_set.align(self.coefficients)
+        self.optimizer = kwargs.get('solver', _SOLVER_TYPE_CPX)
 
 
-    def get_negative_points(self):
-        scores = self.clf.predict_proba(self.X)[:, 1]
-        return np.where(scores < self.decision_threshold)[0]
+    def __parse_classifier_args(self, **kwargs):
+        """
+        :param kwargs:
+        :return:
+        """
+
+        assert 'clf' in kwargs or 'coefficients' in kwargs
+        if 'clf' in kwargs:
+            clf = kwargs.get('clf')
+            w = np.array(clf.coef_)
+            t = float(clf.intercept_)
+
+        elif 'coefficients' in kwargs:
+            w = kwargs.get('coefficients')
+            t = kwargs.get('intercept', 0.0)
+
+        self.intercept = float(t)
+        self.coefficients = np.array(w).flatten()
 
 
-    def audit(self, num_cases = None):
+    def audit(self, X):
 
         ### TODO: bake decision threshold into the optimizer.
 
-        denied_individuals = self.get_negative_points()
-        ## downsample
-        if num_cases and num_cases < len(denied_individuals):
-            denied_individuals = np.random.choice(denied_individuals, num_cases)
+        audit_idx = np.less(self.coefficients.dot(X), self.intercept)
 
-        if not any(self.actionset.aligned):
-            self.actionset.align(self.coefficients)
 
         ## run flipsets
         idx = 0
@@ -81,7 +75,7 @@ class RecourseAuditor(object):
                 optimizer = self.optimizer,
                 coefficients = self.coefficients,
                 intercept = self.intercept,
-                action_set = self.actionset,
+                action_set = self.action_set,
                 x=x
             )
 
