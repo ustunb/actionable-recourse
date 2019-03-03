@@ -1,8 +1,9 @@
-import time
-import warnings
 import numpy as np
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+import pandas as pd
+from recourse.defaults import _DEFAULT_SOLVER
 from recourse.action_set import ActionSet
+from recourse.builder import RecourseBuilder
+
 
 class RecourseAuditor(object):
     """
@@ -18,20 +19,14 @@ class RecourseAuditor(object):
         :param clf_args:
         """
 
-        ## set clf and coefficients
-        self.__parse_classifier_args(**kwargs)
-
-        ### action_set
+        # action_set
         assert isinstance(action_set, ActionSet)
         self.action_set = action_set
 
-        if not self.action_set:
-            if not self.X:
-                raise("No action_set or X provided.")
-            self.action_set = ActionSet(X = self.X)
-
+        # set clf and coefficients
+        self.__parse_classifier_args(**kwargs)
         self.action_set.align(self.coefficients)
-        self.optimizer = kwargs.get('solver', _SOLVER_TYPE_CPX)
+        self.solver = kwargs.get('solver', _DEFAULT_SOLVER)
 
 
     def __parse_classifier_args(self, **kwargs):
@@ -39,7 +34,6 @@ class RecourseAuditor(object):
         :param kwargs:
         :return:
         """
-
         assert 'clf' in kwargs or 'coefficients' in kwargs
         if 'clf' in kwargs:
             clf = kwargs.get('clf')
@@ -57,30 +51,25 @@ class RecourseAuditor(object):
     def audit(self, X):
 
         ### TODO: bake decision threshold into the optimizer.
+        if isinstance(X, pd.DataFrame):
+            X = X.values
 
-        audit_idx = np.less(self.coefficients.dot(X), self.intercept)
-
+        assert X.shape[0] >= 1
+        assert X.shape[1] == len(self.coefficients)
+        U, sample_idx = np.unique(X, axis = 0, return_inverse = True)
+        audit_idx = np.flatnonzero(np.less(U.dot(self.coefficients), self.intercept))
 
         ## run flipsets
-        idx = 0
-        flipsets = {}
-        now = time.time()
-        for i in denied_individuals:
-            if idx % 50 == 0:
-                print('finished %d points in %f...' % (idx, time.time() - now))
-                now = time.time()
+        all_output = []
+        for i in audit_idx:
 
-            x = self.X[i]
-            fb = RecourseBuilder(
-                optimizer = self.optimizer,
-                coefficients = self.coefficients,
-                intercept = self.intercept,
-                action_set = self.action_set,
-                x=x
-            )
+            rb = RecourseBuilder(solver = self.solver,
+                                 coefficients = self.coefficients,
+                                 intercept = self.intercept,
+                                 action_set = self.action_set,
+                                 x = U[i, :])
+            output = rb.fit()
+            output['idx'] = i
+            all_output.append(output)
 
-            output = fb.fit()
-            flipsets[i] = output.get('total_cost') or output.get('max_cost')
-            idx += 1
-
-        return flipsets
+        return all_output

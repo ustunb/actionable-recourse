@@ -4,7 +4,7 @@ from recourse.paths import *
 from recourse.auditor import RecourseAuditor
 from recourse.action_set import ActionSet
 
-data_name = 'credit'
+data_name = 'german'
 data_file = test_dir / ('%s_processed.csv' % data_name)
 
 ## load dataset
@@ -25,5 +25,6 @@ clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
 #
-audit = RecourseAuditor(clf=clf, dataset=X.values, actionset=action_set, decision_threshold = 0.8)
-audit.run_audit(num_cases=10)
+
+auditor = RecourseAuditor(clf=clf, action_set = action_set)
+auditor.audit(X = X)
