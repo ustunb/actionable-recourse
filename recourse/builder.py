@@ -30,7 +30,7 @@ class RecourseBuilder(object):
         """Factory Method."""
         solver = kwargs.get("solver")
 
-        if solver not in SUPPORTED_SOLVERS:
+        if not any(solver == s for s in SUPPORTED_SOLVERS):
             raise NameError("pick solver in: ['cplex', 'cbc']")
 
         if solver == _SOLVER_TYPE_CPX:
