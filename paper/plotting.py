@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 from matplotlib.dates import date2num
 import seaborn as sns
 sns.set(style="white", palette="muted", color_codes = True)
@@ -14,7 +15,7 @@ plt.rcParams['axes.spines.top'] = False
 plt.rcParams['axes.spines.right'] = False
 plt.rcParams['xtick.labelsize'] = 20
 plt.rcParams['ytick.labelsize'] = 20
-plt.rc('legend',fontsize = 20)
+plt.rc('legend', fontsize = 20)
 
 
 #### PLOTS
@@ -97,7 +98,6 @@ def create_coefficient_path_plot(coefs_df, fig_size = (10, 8), label_coefs = Tru
 
 
 #### HELPER FUNCTIONS
-
 
 def create_figure(fig_size = (6, 6)):
 

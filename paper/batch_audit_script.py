@@ -1,5 +1,4 @@
 # import scripts to setup experiments
-from paper.paths import *
 from paper.experimental_setup import *
 from paper.plotting import *
 from recourse.action_set import ActionSet
