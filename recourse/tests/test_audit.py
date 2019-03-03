@@ -4,7 +4,7 @@ from recourse.paths import *
 from recourse.auditor import RecourseAuditor
 from recourse.action_set import ActionSet
 
-data_name = 'german'
+data_name = 'credit'
 data_file = test_dir / ('%s_processed.csv' % data_name)
 
 ## load dataset
