@@ -1,22 +1,23 @@
 import numpy as np
 
 ### Solver ###
+
 _SOLVER_TYPE_CPX = 'cplex'
 _SOLVER_TYPE_CBC = 'cbc'
 SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC}
 
 def set_default_solver():
 
-    if check_solver_cpx():
+    if _check_solver_cpx():
         return _SOLVER_TYPE_CPX
 
-    if check_solver_cbc():
+    if _check_solver_cbc():
         return _SOLVER_TYPE_CBC
 
     raise ModuleNotFoundError('could not find installed MIP solver')
 
 
-def check_solver_cpx():
+def _check_solver_cpx():
     """
     :return: True if CPLEX if installed
     """
@@ -30,10 +31,11 @@ def check_solver_cpx():
     return chk
 
 
-def check_solver_cbc():
+def _check_solver_cbc():
     chk = False
     try:
         import pyomo
+        #todo add some check to make sure CBC is installed
         chk = True
     except ImportError:
         pass
@@ -42,6 +44,8 @@ def check_solver_cbc():
 
 DEFAULT_SOLVER = set_default_solver()
 
+
+### Solver Parameters
 
 DEFAULT_CPLEX_PARAMETERS = {
     #
