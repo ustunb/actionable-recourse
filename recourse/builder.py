@@ -30,7 +30,7 @@ class RecourseBuilder(object):
         """Factory Method."""
         solver = kwargs.get("solver")
 
-        if solver not in SUPPORTED_SOLVERS:
+        if not any(solver == s for s in SUPPORTED_SOLVERS):
             raise NameError("pick solver in: ['cplex', 'cbc']")
 
         if solver == _SOLVER_TYPE_CPX:
@@ -975,12 +975,12 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         ## set up objective function.
         if self.mip_cost_type == "max":
             self.model.g = Objective(rule=obj_rule_max, sense=minimize)
+            self.model.c3 = Constraint(self.model.JK, rule=maxcost_rule)
         else:
             self.model.g = Objective(rule=obj_rule_percentile, sense=minimize)
         ##
         self.model.c1 = Constraint(self.model.J, rule=c1Rule)
         self.model.c2 = Constraint(rule=c2Rule)
-        self.model.c3 = Constraint(self.model.JK, rule=maxcost_rule)
         self.built = True
 
 
