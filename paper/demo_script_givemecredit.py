@@ -1,61 +1,28 @@
-# # Experiments Overview
-
-import pandas as pd 
-import numpy as np
-import matplotlib
+import itertools
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+import seaborn.apionly as sns
 from sklearn.linear_model import LogisticRegressionCV
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
-import itertools
-from recourse.action_set import ActionSet
-from recourse.flipset import FlipsetBuilder
-import seaborn.apionly as sns
-import sklearn.linear_model
-import numpy as np
-from sklearn.model_selection import KFold
-import sklearn.metrics
-from recourse.path import *
-import os
+from paper.experimental_setup import *
 
 data_name = 'givemecredit'
-data_file = os.path.join(data_dir, data_name, '%s_training.csv' % data_name)
-demo_results_dir = os.path.join(results_dir, data_name)
-file_header = os.path.join(demo_results_dir, data_name)
-cache_dir = os.path.join(repo_dir, "scripts", "results_intermediate", data_name)
-
-def as_result_file(name, extension = 'pdf', header = file_header):
-    return '%s_%s.%s' % (header, name, extension)
-
-givemecredit_df = pd.concat([
-    pd.read_csv(data_file, index_col=0),
-])
+data_file = data_dir / '%s/%s_training.csv' % (data_name, data_name)
+output_dir = results_dir / data_name
+raw_df = pd.concat([pd.read_csv(data_file, index_col=0), ])
 
 # # 1. Out of Sample Costs
 ## sample the dataset
 ## preprocess and prepare
-sample_weights = (givemecredit_df['age']
-                  .apply(lambda x: x < 35)
-                  .map({True:0, False:1.})
-                  )
-downsampled_givemecredit = givemecredit_df.sample(
-    n=100000,
-    weights=sample_weights.values
-)
-
-print("generate X, y...")
-y = 1 - givemecredit_df['SeriousDlqin2yrs'].reset_index(drop=True)
-X = (givemecredit_df
-     .drop('SeriousDlqin2yrs', axis=1)
-     .fillna(0)
-     .reset_index(drop=True)
-     )
+sample_weights = raw_df['age'].apply(lambda x: x < 35).map({True: 0, False: 1.})
+downsampled_givemecredit = raw_df.sample(n = 100000, weights = sample_weights.values)
+y = 1 - raw_df['SeriousDlqin2yrs'].reset_index(drop=True)
+X = raw_df.drop('SeriousDlqin2yrs', axis=1).fillna(0).reset_index(drop=True)
 
 ## split datasets for classifier
-X_clf, X_audit_holdout, y_clf, y_audit_holdout = train_test_split(
-    X, y, test_size=.25
-)
+X_clf, X_audit_holdout, y_clf, y_audit_holdout = train_test_split(X, y, test_size=.25)
 
 # X_train = X.loc[lambda df: ~df.index.isin(flipset_full.index)]
 # X_audit_holdout = X.loc[lambda df: df.index.isin(flipset_full.index)]
@@ -76,8 +43,8 @@ biased_train_aucs, biased_test_aucs = [], []
 for i in range(1):
     print("Iteration %d..." % i)
     X_train, X_test, y_train, y_test = train_test_split(
-        X_clf, y_clf, test_size=.25
-    )
+            X_clf, y_clf, test_size=.25
+            )
     X_biased_train = X_train.loc[lambda df: df['age'] >= 35] #.drop('age', axis=1)
     y_biased_train = y_train.loc[X_biased_train.index]
     X_biased_test = X_test.loc[lambda df: df['age'] >= 35] #.drop('age', axis=1)
@@ -86,11 +53,11 @@ for i in range(1):
     ## train
     clf_full = (
         LogisticRegressionCV(max_iter=1000, Cs=100)
-                .fit(X_train, y_train)
+            .fit(X_train, y_train)
     )
     clf_age_limited = (
         LogisticRegressionCV(max_iter=1000, Cs=100)
-                .fit(X_biased_train, y_biased_train)
+            .fit(X_biased_train, y_biased_train)
     )
 
     ## baseline classifier
@@ -129,25 +96,22 @@ print("run on full holdout...")
 y_pred_all_full_model = clf_full.predict_proba(X_audit_holdout)[:, 1]
 y_pred_all_downsampled = clf_age_limited.predict_proba(X_audit_holdout)[:, 1]
 
-exp_df = pd.DataFrame(columns=[
-    'y_true',
-    'y_full_score',
-    'y_downsampled_score',
-    'age',
-    'y_full_cost',
-    'y_downsampled_cost'
-], index=X_audit_holdout.index)
+exp_df = pd.DataFrame(columns=['y_true', 'y_full_score', 'y_downsampled_score', 'age', 'y_full_cost', 'y_downsampled_cost'],
+                      index = X_audit_holdout.index)
+
+
 exp_df['y_full_score'] = y_pred_all_full_model
 exp_df['y_downsampled_score'] = y_pred_all_downsampled
 exp_df['age'] = X_audit_holdout['age']
 exp_df['y_true'] = y.loc[X_audit_holdout.index]
-exp_df.to_csv(os.path.join(cache_dir, '2018-11-19__demo-1__exp-df.csv'))
+exp_df.to_csv(output_dir / '2018-11-19__demo-1__exp-df.csv')
 
 X_sample = (X_audit_holdout
             # .sample(10000)
             .copy()
             )
 exp_df_sample = exp_df.loc[X_sample.index]
+
 coefficients = {}
 intercept = {}
 coefficients['full'] = clf_full.coef_[0]
@@ -160,8 +124,9 @@ intercept['downsampled'] = clf_age_limited.intercept_[0]
 # numtimes90 days > 0
 # monthly income >0
 # debt
-p = .98
-# generate flipsets
+p = 0.98
+
+# run audit
 for dataset in ['full', 'downsampled']:
     y_col = 'y_%s_score' % dataset
     scores = exp_df_sample[y_col]
@@ -185,12 +150,10 @@ for dataset in ['full', 'downsampled']:
             now = time.time()
 
         x = X.values[i]
-        fb = FlipsetBuilder(
-            coefficients=coefficients[dataset],
-            intercept=intercept[dataset] - (np.log(p / (1. - p))),
-            action_set=action_set,
-            x=x
-        )
+        fb = RecourseBuilder(coefficients=coefficients[dataset],
+                             intercept=intercept[dataset] - (np.log(p / (1. - p))),
+                             action_set=action_set,
+                             x=x)
         ## CPLEX
         cplex_output = fb.fit()
         flipsets[i] = cplex_output
@@ -198,13 +161,12 @@ for dataset in ['full', 'downsampled']:
 
     ## plot cost
     flipset_df = pd.DataFrame.from_dict(flipsets, orient="index")
-    flipset_df.to_csv(os.path.join(cache_dir, '2018-11-19__demo-1__flipsets-%s.csv' % dataset))
+    flipset_df.to_csv(output_dir / '2018-11-19__demo-1__flipsets-%s.csv' % dataset)
 
 
-
-flipset_full = pd.read_csv(os.path.join(cache_dir, '2018-11-19__demo-1__flipsets-full.csv'), index_col=0)
-flipset_age = pd.read_csv(os.path.join(cache_dir, '2018-11-19__demo-1__flipsets-downsampled.csv'), index_col=0)
-exp_df = pd.read_csv(os.path.join(cache_dir, '2018-11-19__demo-1__exp-df.csv'), index_col=0)
+flipset_full = pd.read_csv(output_dir / '2018-11-19__demo-1__flipsets-full.csv', index_col=0)
+flipset_age = pd.read_csv(output_dir / '2018-11-19__demo-1__flipsets-downsampled.csv', index_col=0)
+exp_df = pd.read_csv(output_dir / '2018-11-19__demo-1__exp-df.csv', index_col=0)
 
 exp_df = exp_df.loc[flipset_full.index]
 exp_df['y_downsampled_cost'] = flipset_age['total_cost']
@@ -212,9 +174,8 @@ exp_df['y_full_cost'] = flipset_full['total_cost']
 flipset_full['y_true'] = exp_df['y_true'].loc[flipset_full.index]
 flipset_age['y_true'] = exp_df['y_true'].loc[flipset_age.index]
 
-
-
 ### get flipset
+
 ## min-cost:
 dataset = 'downsampled'
 # dataset = 'full'
@@ -223,7 +184,7 @@ young_individuals = (exp_df
     .loc[lambda df: df['y_full_score'] > .96]
     .loc[lambda df: df['y_full_score'] < .98 ]
     # .loc[lambda df: df['y_downsampled_score']<.9]
-)
+    )
 i = young_individuals.index[0]
 action_set = ActionSet(X=X_audit_holdout)
 action_set['DebtRatio'].step_direction = -1
@@ -238,12 +199,12 @@ action_set.align(coefficients=coefficients[dataset])
 
 p = .97
 x = X.values[i]
-fb = FlipsetBuilder(
-    coefficients=coefficients[dataset],
-    intercept=intercept[dataset] - (np.log(p / (1. - p))),
-    action_set=action_set,
-    x=x
-)
+fb = RecourseBuilder(
+        coefficients=coefficients[dataset],
+        intercept=intercept[dataset] - (np.log(p / (1. - p))),
+        action_set=action_set,
+        x=x
+        )
 cplex_output = fb.fit()
 if cplex_output['feasible']:
     full_actionset = []
@@ -265,67 +226,70 @@ full_stats_unstacked = (
     exp_df[[ 'y_full_score', 'age', 'y_full_cost']]
         .dropna()
         .rename(columns={
-                'y_full_score':'score',
-                'y_full_cost': 'cost'
-            })
+        'y_full_score':'score',
+        'y_full_cost': 'cost'
+        })
         .assign(**{"Training Run": "Full dataset"})
 )
+
 age_stats_unstacked = (
     exp_df[[ 'y_downsampled_score', 'age', 'y_downsampled_cost']]
-       .dropna()
-       .rename(columns={
-                'y_downsampled_score':'score',
-                'y_downsampled_cost': 'cost'
-            })
-       .assign(**{"Training Run": "Age-limited dataset"})
+        .dropna()
+        .rename(columns={
+        'y_downsampled_score': 'score',
+        'y_downsampled_cost': 'cost'
+        })
+        .assign(**{"Training Run": "Age-limited dataset"})
 )
 
 unstacked_combined_set = (pd.concat([
-        age_stats_unstacked,
-        full_stats_unstacked
+    age_stats_unstacked,
+    full_stats_unstacked
     ])
-    # .loc[lambda df: df['score'] < .96]
-    .replace([np.inf, -np.inf], np.nan)
-    .assign(age_cut=lambda df: pd.cut(df['age'], np.arange(25, 75, 5)))
-    .dropna()
-)
+                          # .loc[lambda df: df['score'] < .96]
+                          .replace([np.inf, -np.inf], np.nan)
+                          .assign(age_cut=lambda df: pd.cut(df['age'], np.arange(25, 75, 5)))
+                          .dropna()
+                          )
 
 combined_data_df = (pd.concat([
     (exp_df
      .assign(**{"Training Run": "Full Dataset" })
      [['y_full_cost', 'age', 'Training Run', 'y_true', 'y_full_score']]
      .rename(columns={'y_full_cost': 'total_cost', 'y_full_score': 'y_pred'})
-    ),
+     ),
     (exp_df
      .assign(**{"Training Run": "Age-downsampled"})
      [['y_downsampled_cost', 'age', 'Training Run', 'y_true', 'y_downsampled_score']]
      .rename(columns={'y_downsampled_cost': 'total_cost', 'y_downsampled_score': 'y_pred'})
-    )]).replace([np.inf, -np.inf], np.nan)
-     .assign(age_cut=lambda df: pd.cut(df['age'], np.arange(25, 95, 5)))
-     .dropna()
-)
+     )]).replace([np.inf, -np.inf], np.nan)
+                    .assign(age_cut=lambda df: pd.cut(df['age'], np.arange(25, 95, 5)))
+                    .dropna()
+                    )
 
 max_total_cost = combined_data_df['total_cost'].max()
 mapper = {
-    0:"-1",
-    1:"+1",
+    0: "-1",
+    1: "+1",
     'Age-downsampled': "Sample Pop.",
     'Full Dataset': "Target Pop.",
-}
+    }
 
 plt.rc("font", size=20)
 for y_true in [0, 1]:
-    for training_run in ['Age-downsampled', 'Full Dataset']:
+
+    for training_run in ['Downsampled', 'Full Dataset']:
+
         plt.figure(figsize=(4, 4))
         ax = sns.violinplot(
-            x='age_cut', y='total_cost', 
-            data=(combined_data_df
-                  .loc[lambda df: df['Training Run'] == training_run]
-                  .loc[lambda df: df['y_true'] == y_true]
-                 ),
-            linewidth = 0.5, cut=0,
-            scale='width', color="gold",  inner='quartile'
-        )
+                x='age_cut', y='total_cost',
+                data=(combined_data_df
+                    .loc[lambda df: df['Training Run'] == training_run]
+                    .loc[lambda df: df['y_true'] == y_true]
+                    ),
+                linewidth = 0.5, cut=0,
+                scale='width', color="gold",  inner='quartile'
+                )
 
         plt.ylim((0, max_total_cost))
         plt.ylabel("Cost of Recourse")
@@ -340,32 +304,15 @@ for y_true in [0, 1]:
             l.set_linestyle('-')
             l.set_solid_capstyle('butt')
         ax.set_facecolor("white")
-        plt.savefig(os.path.join(demo_results_dir, '2018-11-18__age-bins-by-sample-%s-y-%s.png'% (training_run.replace(' ', '-').lower(), y_true)), bbox_inches="tight")
-        plt.savefig(os.path.join(demo_results_dir, '2018-11-18__age-bins-by-sample-%s-y-%s.pdf'% (training_run.replace(' ', '-').lower(), y_true)), bbox_inches="tight")
+        plt.savefig(output_dir / '2018-11-18__age-bins-by-sample-%s-y-%s.png' % (training_run.replace(' ', '-').lower(), y_true), bbox_inches="tight")
+        plt.savefig(output_dir / '2018-11-18__age-bins-by-sample-%s-y-%s.pdf' % (training_run.replace(' ', '-').lower(), y_true), bbox_inches="tight")
         plt.close()
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###
 ### extra EDA
-###
 ### exploration...
 age_cutoff_exploration = False
 if age_cutoff_exploration:
@@ -397,7 +344,7 @@ if age_cutoff_exploration:
         plt.ylabel('Training set > age')
         plt.xlabel('Testing set < age')
         plt.title('AUCs of Models Trained on\nVarious dataset splits')
-        plt.savefig(demo_results_dir + '2018-08-11__aucs-of-age-based-dataset-splits.png')
+        plt.savefig(output_dir / '2018-08-11__aucs-of-age-based-dataset-splits.png')
 
 
     # ### Generate AUC scores for vanilla vs. hardweighted models
@@ -500,24 +447,18 @@ if age_cutoff_exploration:
     plt.xlabel('AUC on Age > x')
     plt.vlines(train_cutoff, *plt.ylim(), linestyles='dashed')
     plt.text(train_cutoff * 1.01, .705, 'training\ncutoff', horizontalalignment='left')
-    plt.savefig(
-        demo_results_dir + '2018-08-12__cv-auc-by-age.png',
-        bbox_inches='tight'
-    )
+    plt.savefig(output_dir / '2018-08-12__cv-auc-by-age.png', bbox_inches='tight')
 
 
-    ##
     ## extra
-    ##
     # ### How does average score differ across age?
     score_and_age = (
         exp_df
-         .assign(c=1)
-         .groupby(pd.cut(exp_df['score'], 50)).aggregate({'c':'sum', 'age':'mean'})
-         # redo index
-         .reset_index()
-         .assign(score=lambda df: df['score'].apply(lambda x: x.left))
-         .set_index('score')
+            .assign(c=1)
+            .groupby(pd.cut(exp_df['score'], 50)).aggregate({'c':'sum', 'age':'mean'})
+            .reset_index()             # redo index
+            .assign(score=lambda df: df['score'].apply(lambda x: x.left))
+            .set_index('score')
     )
 
     cmap = plt.get_cmap('RdYlGn')
@@ -537,22 +478,20 @@ if age_cutoff_exploration:
     x_axis_var = 'age'
 
     flipset_cost_and_age = (
-        flipset_df
-            .assign(c=1)
-            .pipe(lambda df:
-                  df.groupby(pd.cut(df[x_axis_var], 50)).aggregate({'c': 'sum', color_var: 'mean'})
-                  # redo index
-                  .reset_index()
-                  .assign(**{x_axis_var: lambda df: df[x_axis_var].apply(lambda x: x.left)})
-                  .set_index(x_axis_var)
-                  )
+        flipset_df.assign(c=1).pipe(lambda df:
+                                    df.groupby(pd.cut(df[x_axis_var], 50)).aggregate({'c': 'sum', color_var: 'mean'})
+                                    # redo index
+                                    .reset_index()
+                                    .assign(**{x_axis_var: lambda df: df[x_axis_var].apply(lambda x: x.left)})
+                                    .set_index(x_axis_var)
+                                    )
     )
 
     cmap = plt.get_cmap('RdYlGn')
     ax = (flipset_cost_and_age['c']
           .plot(kind='bar', color=cmap(
-        flipset_cost_and_age[color_var].pipe(lambda s: (s - s.min()) / (s.max() - s.min()))
-    )))
+            flipset_cost_and_age[color_var].pipe(lambda s: (s - s.min()) / (s.max() - s.min()))
+            )))
 
     ylim = ax.get_ylim()
     train_cutoff_x = float(np.digitize(train_cutoff, flipset_cost_and_age.index))
@@ -566,17 +505,15 @@ if age_cutoff_exploration:
     # ax.semilogy()
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.15)
-    norm = matplotlib.colors.Normalize(
-        vmin=flipset_cost_and_age[color_var].min(),
-        vmax=flipset_cost_and_age[color_var].max()
-    )
+    norm = mpl.colors.Normalize(
+            vmin=flipset_cost_and_age[color_var].min(),
+            vmax=flipset_cost_and_age[color_var].max()
+            )
 
-    cb = matplotlib.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
+    cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm, orientation='vertical')
     cb.set_label('Average Cost of Bucket')
 
     ax.set_title('Average Age Across Cost Range\nAge-Holdout: %d' % train_cutoff)
     ax.set_ylabel('Number of datapoints')
 
-    plt.savefig('results_images/demo-1__out-of-sample/2018-08-12__hist-over-ages-and-costs__age-holdout-%d.png' % train_cutoff,
-                bbox_inches="tight"
-               )
+    plt.savefig(output_dir / '2018-08-12__hist-over-ages-and-costs__age-holdout-%d.png' % train_cutoff, bbox_inches="tight")

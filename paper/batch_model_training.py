@@ -1,4 +1,3 @@
-from paper.paths import *
 from paper.experimental_setup import *
 from paper.plotting import *
 from sklearn.model_selection import GridSearchCV
@@ -30,8 +29,8 @@ settings = {
     }
 
 # file names
-output_dir = '%s/%s' % (results_dir, settings['data_name'])
-os.makedirs(output_dir, exist_ok = True)
+output_dir = results_dir / settings['data_name']
+output_dir.mkdir(exist_ok = True)
 
 if settings['normalize_data']:
     settings['method_suffixes'].append('normalized')
@@ -139,7 +138,6 @@ if settings['train_classifiers']:
 
     if settings['save_flag']:
         pickle.dump(model_stats, file = open(settings['model_file'], 'wb'), protocol=2)
-        print_log('saved model file to %s' % settings['model_file'])
 
 else:
 
@@ -195,7 +193,6 @@ if settings['plot_model_error_path']:
     f, ax = create_figure()
     test_error['mean'] = -test_error['mean']
     test_error['mean'].plot(ax = ax, label='test error', color='black', markersize=14)
-    #ax.errorbar(test_error.index, test_error['mean'], yerr = test_error['var'], fmt='o', color='black')
 
     # formatting
     plt.semilogx()
