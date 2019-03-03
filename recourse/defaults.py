@@ -1,4 +1,13 @@
-import numpy as np 
+import numpy as np
+from recourse.builder import _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
+
+try:
+    import cplex
+    _DEFAULT_SOLVER = _SOLVER_TYPE_CPX
+except ImportError:
+    _DEFAULT_SOLVER = _SOLVER_TYPE_CBC
+
+
 
 DEFAULT_CPLEX_PARAMETERS = {
     #
