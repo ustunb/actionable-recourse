@@ -2,15 +2,17 @@
 
 - Auditor class
 - return types for audit
-- action_set should take in linear classifier from scikit learn
-- easy setup
+
 - minimal test for audit and flipset 
 - minimal test for CPLEX vs. Pyomo
+- easy setup
+
+- ability to run code without having CPLEX or Pyomo installed (no ImportError)
 - add specs to functions
+- action_set should take in linear classifier from scikit learn
 - simplify iPython [ex_01_quickstart.ipynb]
 - README setup instructions
 - README example 'https://github.com/cvxgrp/dccp'
-
 
 ## Paper Reproducibility
 

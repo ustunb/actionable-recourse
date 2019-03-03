@@ -24,7 +24,5 @@ action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
-#
-
 auditor = RecourseAuditor(clf=clf, action_set = action_set)
-auditor.audit(X = X)
+raw = auditor.audit(X = X)

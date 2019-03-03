@@ -1,12 +1,25 @@
 import numpy as np
-from recourse.builder import _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
 
-try:
-    import cplex
-    _DEFAULT_SOLVER = _SOLVER_TYPE_CPX
-except ImportError:
-    _DEFAULT_SOLVER = _SOLVER_TYPE_CBC
+### Solver ###
 
+_SOLVER_TYPE_CPX = 'cplex'
+_SOLVER_TYPE_CBC = 'cbc'
+SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC}
+
+def set_default_solver():
+
+    try:
+        import cplex
+        # make sure cplex can be used
+        return _SOLVER_TYPE_CPX
+
+    except ImportError:
+        import pyomo
+        #todo make sure CBC is installed
+        return _SOLVER_TYPE_CBC
+
+
+DEFAULT_SOLVER = set_default_solver()
 
 
 DEFAULT_CPLEX_PARAMETERS = {

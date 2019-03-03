@@ -897,6 +897,7 @@ class ActionSet(object):
         """
         return all([e.aligned for e in self._elements.values()])
 
+
     def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_immutable = False):
         """
         returns feasible features when features are x

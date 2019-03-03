@@ -1,20 +1,24 @@
+import time
 import warnings
-from itertools import chain
 import numpy as np
 import pandas as pd
-from recourse.action_set import ActionSet
-from recourse.cplex_helper import set_mip_parameters, set_cpx_display_options, set_mip_time_limit, set_mip_node_limit, toggle_mip_preprocessing, DEFAULT_CPLEX_PARAMETERS
+from itertools import chain
 from collections import defaultdict
-from cplex import Cplex, SparsePair
-from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
-from pyomo.opt import SolverFactory
-import pyomo.environ
-import time
+from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+from recourse.helper_functions import parse_classifier_args
+from recourse.action_set import ActionSet
 
+try:
+    from cplex import Cplex, SparsePair
+    from recourse.cplex_helper import set_mip_parameters, set_cpx_display_options, set_mip_time_limit, set_mip_node_limit, toggle_mip_preprocessing, DEFAULT_CPLEX_PARAMETERS
+except ImportError:
+    pass
 
-_SOLVER_TYPE_CPX = 'cplex'
-_SOLVER_TYPE_CBC = 'cbc'
-SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC}
+try:
+    from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
+    from pyomo.opt import SolverFactory
+except ImportError:
+    pass
 
 
 class RecourseBuilder(object):
@@ -26,23 +30,17 @@ class RecourseBuilder(object):
     _default_mip_cost_type = 'max'
     _valid_mip_cost_types = {'total', 'local', 'max'}
 
+
     def __new__(cls, **kwargs):
+
         """Factory Method."""
         solver = kwargs.get("solver")
+        if not solver in SUPPORTED_SOLVERS:
+            raise ValueError("pick solver in: %r" % SUPPORTED_SOLVERS)
+        return super().__new__(BUILDER_TO_SOLVER[solver])
 
-        if not any(solver == s for s in SUPPORTED_SOLVERS):
-            raise NameError("pick solver in: ['cplex', 'cbc']")
 
-        if solver == _SOLVER_TYPE_CPX:
-            return (super()
-                    .__new__(_RecourseBuilderCPX)
-                    )
-        elif solver == _SOLVER_TYPE_CBC:
-            return (super()
-                    .__new__(_RecourseBuilderPyomo)
-                    )
-
-    def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
+    def __init__(self, action_set, x, **kwargs):
         """
         :param x: vector of input variables for person x
         :param intercept: intercept value of score function
@@ -53,20 +51,13 @@ class RecourseBuilder(object):
         """
 
         # attach coefficients
-        coefficients = np.array(coefficients).flatten()
-        assert np.all(np.isfinite(coefficients))
-        self._coefficients = coefficients
-
-        # attach intercept
-        intercept = float(intercept)
-        assert np.isfinite(intercept)
-        self._intercept = intercept
+        self._coefficients, self._intercept = parse_classifier_args(**kwargs)
 
         # attach action set
         assert isinstance(action_set, ActionSet)
-        assert len(action_set) == len(coefficients)
+        assert len(action_set) == len(self._coefficients)
         if not action_set.aligned:
-            action_set.align(coefficients)
+            action_set.align(self._coefficients)
         self._action_set = action_set
 
         # add indices
@@ -93,6 +84,7 @@ class RecourseBuilder(object):
 
 
     #### built-ins ####
+
     def __len__(self):
         raise len(self.action_set)
 
@@ -358,13 +350,13 @@ class RecourseBuilder(object):
     def infeasible_info(self):
 
         info = {
+            'cost': float('inf'),
             'feasible': False,
             'status': 'no solution exists',
             'status_code': float('nan'),
             #
-            'total_cost': float('inf'),
-            'actions': np.repeat(np.nan, self.n_variables),
             'costs': np.repeat(np.nan, self.n_variables),
+            'actions': np.repeat(np.nan, self.n_variables),
             'upperbound': float('inf'),
             'lowerbound': float('inf'),
             'gap': float('inf'),
@@ -411,11 +403,11 @@ class RecourseBuilder(object):
 
                 # check total cost
                 if self.mip_cost_type == 'max':
-                    if not np.isclose(info['total_cost'], np.max(info['costs']), rtol = 1e-4):
+                    if not np.isclose(info['cost'], np.max(info['costs']), rtol = 1e-4):
                         warnings.warn('numerical issue: max_cost is %1.2f but maximum of cost[j] is %1.2f' % (
-                            info['total_cost'], np.max(info['costs'])))
+                            info['cost'], np.max(info['costs'])))
                 elif self.mip_cost_type == 'total':
-                    assert np.isclose(info['total_cost'], np.sum(info['costs']))
+                    assert np.isclose(info['cost'], np.sum(info['costs']))
 
             except AssertionError:
                 warnings.warn('issue detected with %s' % str(info))
@@ -428,6 +420,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
 
     _default_cplex_parameters = dict(DEFAULT_CPLEX_PARAMETERS)
+
 
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
         """
@@ -697,9 +690,9 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 }
 
             if self.mip_cost_type == 'max':
-                info['total_cost'] = sol.get_values(indices['max_cost_var_name'])[0]
+                info['cost'] = sol.get_values(indices['max_cost_var_name'])[0]
             else:
-                info['total_cost'] = info['upperbound']
+                info['cost'] = info['upperbound']
 
         else:
 
@@ -748,11 +741,11 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
                 # check total cost
                 if self.mip_cost_type == 'max':
-                    if not np.isclose(info['total_cost'], np.max(info['costs']), rtol = 1e-4):
+                    if not np.isclose(info['cost'], np.max(info['costs']), rtol = 1e-4):
                         warnings.warn('numerical issue: max_cost is %1.2f but maximum of cost[j] is %1.2f' % (
-                            info['total_cost'], np.max(info['costs'])))
+                            info['cost'], np.max(info['costs'])))
                 elif self.mip_cost_type == 'total':
-                    assert np.isclose(info['total_cost'], np.sum(info['costs']))
+                    assert np.isclose(info['cost'], np.sum(info['costs']))
 
             except AssertionError:
                 warnings.warn('issue detected with %s' % str(info))
@@ -786,6 +779,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
     def toggle_preprocessing(self, toggle = True):
         self._mip = toggle_mip_preprocessing(self._mip, toggle)
+
 
     #### solving, enumeration, validation ####
     def fit(self, time_limit = None, node_limit = None, display_flag = False):
@@ -1046,8 +1040,15 @@ class _RecourseBuilderPyomo(RecourseBuilder):
             .loc[lambda df: df['u']==1]
         )
         final_output = {}
-        final_output['total_cost'] = instance.max_cost()
+        final_output['cost'] = instance.max_cost()
         final_output['actions'] = output_df['a'].values
         final_output['costs'] = output_df['c'].values
         final_output['runtime'] = end
         return output
+
+
+
+BUILDER_TO_SOLVER = {
+    _SOLVER_TYPE_CPX: _RecourseBuilderCPX,
+    _SOLVER_TYPE_CBC: _RecourseBuilderPyomo,
+    }

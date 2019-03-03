@@ -1,11 +1,10 @@
-# This file contains general helper functions for any CPLEX MIP Object
+    # This file contains general helper functions for any CPLEX MIP Object
 
 import numpy as np
 from functools import reduce
 from cplex import Cplex, SparsePair
 from cplex.exceptions import CplexError
 from cplex.callbacks import MIPInfoCallback
-
 
 # Convenience Functions when working with MIP
 
