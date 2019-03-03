@@ -657,6 +657,7 @@ class ActionSet(object):
 
 
     def __getitem__(self, index):
+
         if isinstance(index, str):
             return self._elements[index]
         elif isinstance(index, (int, np.int_)):
@@ -681,7 +682,7 @@ class ActionSet(object):
 
 
     def __getattribute__(self, name):
-        if name[0] == '_' or not hasattr(_ActionElement, name):
+        if name[0] == '_' or name == 'aligned' or not hasattr(_ActionElement, name):
             return object.__getattribute__(self, name)
         else:
             return [getattr(self._elements[n], name) for n, j in self._indices.items()]
@@ -882,12 +883,19 @@ class ActionSet(object):
         """
         assert isinstance(coefficients, (list, np.ndarray))
         assert len(self) == len(coefficients)
-        assert np.all(np.isfinite(coefficients))
+        assert np.isfinite(coefficients).all()
 
         flips = np.sign(np.array(coefficients).flatten())
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
 
+
+    @property
+    def aligned(self):
+        """
+        :return: True if action set has been aligned with coefficients of linear classifier
+        """
+        return all([e.aligned for e in self._elements.values()])
 
     def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_immutable = False):
         """
