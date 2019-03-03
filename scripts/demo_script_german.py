@@ -1,3 +1,6 @@
+import time
+import os
+import pickle
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,17 +9,9 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
-import time
-import os
-
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-
 from recourse.path import *
+from recourse.builder import RecourseBuilder
 from recourse.action_set import ActionSet
-from recourse.flipset import FlipsetBuilder
 import seaborn.apionly as sns
 
 data_name = 'german'
@@ -49,8 +44,6 @@ action_set['RentsHouse'].mutable = False
 action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
 action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 # action_set['isMale'].mutable = False
-
-
 
 ## plot the demographic composition
 # print("...plotting histogram of all X values")
@@ -333,7 +326,7 @@ action_set.align(coefficients=coefficients)
 
 p = scores.median()
 x = X.values[i]
-fb = FlipsetBuilder(
+fb = RecourseBuilder(
     coefficients=coefficients,
     intercept=intercept - (np.log(p / (1. - p))),
     action_set=action_set,

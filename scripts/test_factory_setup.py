@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from scripts.paths import *
-from recourse.auditor import Auditor
+from recourse.auditor import RecourseAuditor
 from recourse.action_set import ActionSet
 
 data_name = 'german'

@@ -1,14 +1,13 @@
 import time
 import warnings
 import numpy as np
-from recourse.recourse_problem import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
 from recourse.action_set import ActionSet
 
 
-class Auditor(object):
+class RecourseAuditor(object):
 
-
-    def __init__(self, X, y = None, actionset = None, optimizer = _SOLVER_TYPE_CPX, decision_threshold=None, **clf_args):
+    def __init__(self, X, y = None, actionset = None, optimizer = _SOLVER_TYPE_CPX, decision_threshold = None, **clf_args):
         """
         Run an audit on a classifier.
 

@@ -2,6 +2,7 @@ from sklearn.model_selection import GridSearchCV
 from copy import copy
 
 # import scripts to setup experiments
+from scripts.paths import *
 from scripts.experimental_setup import *
 from scripts.plotting import *
 
@@ -156,11 +157,11 @@ raw_coef_df = model_stats['raw_coef_df']
 if settings['method_name'] == 'logreg':
     coef_df = coef_df.rename(columns={col: 1. / float(col.split('_')[1]) for col in coef_df.columns})
     raw_coef_df = raw_coef_df.rename(columns={col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
-    xlabel = '$\ell_1$-penalty (log scale)'
+    xlabel = '$\ell_1$-penalty'
 else:
     coef_df = coef_df.rename(columns={col: float(col.split('_')[1]) for col in coef_df.columns})
     raw_coef_df = raw_coef_df.rename(columns = {col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
-    xlabel = '$C$-penalty (log scale)'
+    xlabel = '$C$-penalty'
 
 coef_df.to_csv('%s_coefficient_df.csv' % settings['file_header'], float_format = '%1.6f')
 
@@ -172,16 +173,14 @@ if settings['plot_model_size_path']:
     nnz_coef_df = raw_coef_df.apply(lambda x: ~np.isclose(x, 0.0, rtol = 1e-4))
     non_zero_sum = nnz_coef_df.sum()
     non_zero_sum_actionable = (nnz_coef_df.pipe(lambda df: df.loc[~df.index.isin(data['immutable_variable_names'])]).sum())
-    non_zero_sum.plot(ax = ax, marker='o', label = 'All Features')
-    non_zero_sum_actionable.plot(ax = ax, marker='o', label = 'Actionable Features')
-    # todo: fix bug -> if a variable has a coefficient with flip_direction != step_direction then it's also not actionable
-    # todo: need to compute this using the action_set
+    non_zero_sum.plot(ax = ax, marker='o', label = 'All Variables', markersize = 14)
+    non_zero_sum_actionable.plot(ax = ax, marker='o', label = 'Actionable Variables', markersize=14)
 
     # formatting
     max_nnz = np.max(np.sum(nnz_coef_df, axis = 0))
     ax.semilogx()
     ax.set_xlabel(xlabel)
-    ax.set_ylabel('Non-Zero Coefficients')
+    ax.set_ylabel('# of Input Variables')
     ax.set_ylim((0, max_nnz + 0.5))
     ax.set_yticks(ticks = np.arange(0, max_nnz + 2, 2).tolist())
     ax.legend(frameon = True, prop = {'size': 20})
@@ -197,13 +196,13 @@ if settings['plot_model_error_path']:
 
     f, ax = create_figure()
     test_error['mean'] = -test_error['mean']
-    test_error['mean'].plot(ax = ax, label='test error', color='black')
-    ax.errorbar(test_error.index, test_error['mean'], yerr = test_error['var'], fmt='o', color='black')
+    test_error['mean'].plot(ax = ax, label='test error', color='black', markersize=14)
+    #ax.errorbar(test_error.index, test_error['mean'], yerr = test_error['var'], fmt='o', color='black')
 
     # formatting
     plt.semilogx()
     ax.set_xlabel(xlabel)
-    ax.set_ylabel('%d-CV Mean Test Error' % settings['n_folds'])
+    ax.set_ylabel('Mean Test Error (%d-CV)' % settings['n_folds'])
     ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals = 1))
     ax.set_ylim((0.19, 0.20))
     ax = fix_font_sizes(ax)

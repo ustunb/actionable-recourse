@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
 from scripts.helper_functions import print_log
-from recourse.recourse_problem import RecourseBuilder
+from recourse.builder import RecourseBuilder
 
 from sklearn.preprocessing import StandardScaler
 import time
 import pprint
+import pickle
 
 # Formatting Options
 np.set_printoptions(precision = 4, suppress = False)
@@ -168,7 +169,7 @@ def get_flipset_solutions(model, data, action_set, mip_cost_type = 'max', scaler
     if any(predicted_neg):
 
         U = data['X'].iloc[predicted_neg].values
-        fb = FlipsetBuilder(coefficients = coefficients, intercept = intercept, action_set = action_set, x = U[0], mip_cost_type = mip_cost_type)
+        fb = RecourseBuilder(coefficients = coefficients, intercept = intercept, action_set = action_set, x = U[0], mip_cost_type = mip_cost_type)
 
         # basic audit
         start_time = time.time()

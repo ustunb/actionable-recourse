@@ -1,8 +1,9 @@
 # import scripts to setup experiments
+from scripts.paths import *
 from scripts.experimental_setup import *
 from scripts.plotting import *
 from recourse.action_set import ActionSet
-
+import pickle
 # user settings
 settings = {
     #
