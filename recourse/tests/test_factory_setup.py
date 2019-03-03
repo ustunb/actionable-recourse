@@ -32,22 +32,16 @@ scores = pd.Series(clf.predict_proba(X)[:, 1])
 coefficients = clf.coef_[0]
 intercept = clf.intercept_[0]
 action_set.align(coefficients=coefficients)
-# p = .8
-p = scores.median()
+
+p = scores.median() ## or you can set a score-threshold, like .8
 denied_individuals = scores.loc[lambda s: s<=p].index
 
-### load cache
-coefficients = clf.coef_[0]
-intercept = clf.intercept_[0]
-p = scores.median()
-denied_individuals = scores.loc[lambda s: s <= p].index
-
+## get test individual
 idx = denied_individuals[5]
-
 
 x = X.iloc[idx].values
 t_cplex = RecourseBuilder(
-    optimizer='cplex',
+    solver='cplex',
     action_set=action_set,
     coefficients=coefficients,
     intercept=intercept- (np.log(p / (1. - p))),
@@ -58,7 +52,7 @@ cplex_output_df = pd.DataFrame(cplex_output)[['actions', 'costs']]
 print(cplex_output_df)
 
 t_pyomo = RecourseBuilder(
-    optimizer='cbc',
+    solver='cbc',
     action_set=action_set,
     coefficients=coefficients,
     intercept=intercept - (np.log(p / (1. - p))),

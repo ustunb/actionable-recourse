@@ -8,6 +8,7 @@ from collections import defaultdict
 from cplex import Cplex, SparsePair
 from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
 from pyomo.opt import SolverFactory
+import pyomo.environ
 import time
 
 
@@ -16,7 +17,7 @@ _SOLVER_TYPE_CBC = 'cbc'
 SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC}
 
 
-class _RecourseBase(object):
+class RecourseBuilder(object):
 
     _default_enumeration_type = 'size'
     _default_cost_function = 'size'
@@ -24,6 +25,22 @@ class _RecourseBase(object):
     _default_check_flag = True
     _default_mip_cost_type = 'max'
     _valid_mip_cost_types = {'total', 'local', 'max'}
+
+    def __new__(cls, **kwargs):
+        """Factory Method."""
+        solver = kwargs.get("solver")
+
+        if solver not in SUPPORTED_SOLVERS:
+            raise NameError("pick solver in: ['cplex', 'cbc']")
+
+        if solver == _SOLVER_TYPE_CPX:
+            return (super()
+                    .__new__(_RecourseBuilderCPX)
+                    )
+        elif solver == _SOLVER_TYPE_CBC:
+            return (super()
+                    .__new__(_RecourseBuilderPyomo)
+                    )
 
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
         """
@@ -407,12 +424,10 @@ class _RecourseBase(object):
 
 
 
-class _RecourseBuilderCPX(_RecourseBase):
+class _RecourseBuilderCPX(RecourseBuilder):
 
 
     _default_cplex_parameters = dict(DEFAULT_CPLEX_PARAMETERS)
-
-
 
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
         """
@@ -429,7 +444,7 @@ class _RecourseBuilderCPX(_RecourseBase):
         ## initialize base class
         super().__init__(action_set=action_set, coefficients=coefficients, intercept=intercept, x=x, **kwargs)
 
-        return self
+        # return self
 
 
 
@@ -874,7 +889,7 @@ class _RecourseBuilderCPX(_RecourseBase):
 
 
 
-class _RecourseBuilderPyomo(_RecourseBase):
+class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
@@ -886,8 +901,6 @@ class _RecourseBuilderPyomo(_RecourseBase):
             x=x,
             **kwargs
         )
-        return self
-
 
     def _check_mip_build_info(self, build_info):
         ## TODO
@@ -959,8 +972,12 @@ class _RecourseBuilderPyomo(_RecourseBase):
                     sum(m.epsilon * m.u[j, k] * m.c[j, k] for j, k in m.JK) + (1 - m.epsilon) * m.max_cost
             )
 
+        ## set up objective function.
+        if self.mip_cost_type == "max":
+            self.model.g = Objective(rule=obj_rule_max, sense=minimize)
+        else:
+            self.model.g = Objective(rule=obj_rule_percentile, sense=minimize)
         ##
-        self.model.g = Objective(rule=obj_rule_max, sense=minimize)
         self.model.c1 = Constraint(self.model.J, rule=c1Rule)
         self.model.c2 = Constraint(rule=c2Rule)
         self.model.c3 = Constraint(self.model.JK, rule=maxcost_rule)
@@ -1024,33 +1041,13 @@ class _RecourseBuilderPyomo(_RecourseBase):
                 'u': instance.u[i](),
                 'c': instance.c[i]
             }
-        output_df = pd.DataFrame(output).loc[lambda df: df['u']==1]
+        output_df = (pd.DataFrame
+            .from_dict(output, orient="index")
+            .loc[lambda df: df['u']==1]
+        )
         final_output = {}
         final_output['total_cost'] = instance.max_cost()
         final_output['actions'] = output_df['a'].values
         final_output['costs'] = output_df['c'].values
         final_output['runtime'] = end
         return output
-
-
-
-class RecourseBuilder(_RecourseBase):
-
-
-    """Factory Method."""
-    def __new__(cls, action_set, coefficients, intercept = 0.0, x = None, optimizer="cplex", **kwargs):
-
-        if optimizer not in SUPPORTED_SOLVERS:
-            raise NameError("pick optimizer in: ['cplex', 'cbc']")
-
-
-
-        if optimizer == _SOLVER_TYPE_CPX:
-            return (super()
-                    .__new__(_RecourseBuilderCPX)
-                    .__init__(action_set, coefficients, intercept = intercept, x = x, **kwargs)
-                    )
-        elif optimizer == _SOLVER_TYPE_CBC:
-            return (super()
-                    .__new__(_RecourseBuilderPyomo)
-                    .__init__(action_set, coefficients, intercept = intercept, x = x, **kwargs))
