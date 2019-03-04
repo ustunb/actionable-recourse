@@ -25,7 +25,6 @@ action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
-
 denied_idx = np.flatnonzero(clf.predict(X) < 0)
 i = denied_idx[0]
 

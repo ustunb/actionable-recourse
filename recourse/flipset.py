@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
 pd.set_option('display.max_columns', 10)
+
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 
-# todo enumeration strategy
-# todo method for enumeration
-# todo improve cost function type implementation ('maxpct' / 'logpct' / 'euclidean')
-# todo base_mip / rebuild mip when required
+# todo disable displays in Flipset builder
 
 class Flipset(object):
 
