@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def is_sklearn_linear_classifier(obj):
     """
     Checks if object is a sklearn linear classifier for a binary outcome
