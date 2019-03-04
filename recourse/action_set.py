@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
+from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
@@ -827,65 +828,17 @@ class ActionSet(object):
         table = df.to_latex(index = False, escape = False)
         return table
 
+    #### alignment ####
 
-    ### save / load ####
-
-    @staticmethod
-    def load(file_name):
-
-        raise NotImplementedError()
-
-        try:
-            import pickle
-        except ImportError:
-            import cPickle as pickle
-
-        assert os.path.isfile(file_name), 'file %s not found' % file_name
-
-        with open(file_name, 'rb') as infile:
-            file_contents = pickle.load(infile)
-        assert 'elements' in file_contents
-        assert 'indices' in file_contents
-
-        self._elements = self._elements
-        self._indices = self._indices
-        self._print_flag = file_contents.get('print_flag', self._default_print_flag)
-        self._check_flag = file_contents.get('print_flag', self._default_check_flag)
-        return self
-
-
-    def save(self, file_name, overwrite = True):
-
-        raise NotImplementedError()
-
-        try:
-            import pickle
-        except ModuleNotFoundError:
-            import cPickle as pickle
-
-        if overwrite is False:
-            if os.path.isfile(file_name):
-                raise IOError('file %s already exist on disk' % file_name)
-
-        self._check_rep()
-        file_contents = {'elements': self._elements, 'indices': self._indices, 'print_flag': self.print_flag, 'check_flag': self.check_flag}
-        with open(file_name, 'wb') as outfile:
-            pickle.dump(file_contents, outfile, protocol = pickle.HIGHEST_PROTOCOL)
-        return True
-
-
-    ### core methods ###
-    def align(self, coefficients):
+    def align(self, *args, **kwargs):
         """
         adjusts direction of recourse for each element in action set
-        :param coefficients: vector of coeffections
+        :param clf: scikit-learn classifier or vector of coefficients
         :return:
         """
-        assert isinstance(coefficients, (list, np.ndarray))
-        assert len(self) == len(coefficients)
-        assert np.isfinite(coefficients).all()
-
-        flips = np.sign(np.array(coefficients).flatten())
+        coefs, _ = parse_classifier_args(*args, **kwargs)
+        assert len(coefs) == len(self)
+        flips = np.sign(coefs)
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
 
@@ -897,7 +850,7 @@ class ActionSet(object):
         """
         return all([e.aligned for e in self._elements.values()])
 
-
+    #### grid generation  ####
     def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_immutable = False):
         """
         returns feasible features when features are x
@@ -905,8 +858,7 @@ class ActionSet(object):
         :param action_grid: set to True for returned grid to reflect changes to x
         :param return_percentiles: set to True to include percentiles in return values
         :param return_immutable: set to True to restrict return values to only actionable features
-
-        :return: dictionary of the form {name:feasible_values}
+        :return: dictionary of the form {name: feasible_values}
         """
         assert isinstance(x, (list, np.ndarray)), 'feature values should be list or np.ndarray'
         assert len(x) == len(self), 'dimension mismatch x should have len %d' % len(self)
