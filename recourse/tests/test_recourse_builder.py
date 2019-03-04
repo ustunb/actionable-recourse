@@ -12,7 +12,7 @@ class MyActionSet(ActionSet):
         ## initialize.
         super().__init__(X, names=names)
 
-def test_actionset():
+def test_actionset_fake_data():
     a = MyActionSet()
 
     ## check that the column-names are being stored correctly
@@ -38,7 +38,7 @@ def test_actionset():
     assert np.isclose(percentiles['c'], [0, .5, 1], atol=1e-6).all()
 
 
-def test_recourse_builder_cplex():
+def test_recourse_builder_cplex_fake_data():
     """Base test. Tests that the factory object instantiates a
     _RecourseCPLEX module and that it has correct initialization attributes."""
 
