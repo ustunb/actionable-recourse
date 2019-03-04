@@ -25,4 +25,4 @@ clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
 auditor = RecourseAuditor(clf=clf, action_set = action_set)
-raw = auditor.audit(X = X)
+audit_results = auditor.audit(X = X)

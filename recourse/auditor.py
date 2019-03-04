@@ -5,16 +5,18 @@ from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 
-
 class RecourseAuditor(object):
+    """
+    Class to efficiently evaluate the feasibility and cost of recourse over a sample of points
+    """
 
-    """
-    """
     def __init__(self, action_set, **kwargs):
         """
-        :param action_set:
-        :param solver:
-        :param kwargs: either clf or coefficient
+        :param action_set: ActionSet  for features
+        :param clf: scikit-learn linear classifier
+        :param coefficients: vector of coefficients (only used when clf is not specified)
+        :param intercept: set to 0.0 by default (only used when clf is not specified)
+        :param solver: valid MIP solver
         """
 
         # action_set
@@ -26,35 +28,68 @@ class RecourseAuditor(object):
 
         # align coefficients to action set
         self.action_set.align(self.coefficients)
+
+        # set solver
         self.solver = kwargs.get('solver', DEFAULT_SOLVER)
 
 
-    def audit(self, X):
+    def audit(self, X, y_desired = 1):
+        """
+        evaluate cost and feasibility of recourse for for each point in X
+        that is not assigned a desired outcome
 
-        ### TODO: bake decision threshold into the optimizer.
+        :param X: feature matrix (np.array or pd.DataFrame)
+        :param y_desired: desired label (+1 by default)
+        :return: pd.DataFrame containing the feasibility and cost of recourse for each point in X
+                 rows that already attain desired outcome have entries: feasible = NaN & cost = NaN
+                 rows that are certified to have no recourse have entries: feasible = False & cost = Inf
+        """
+
         if isinstance(X, pd.DataFrame):
+            raw_index = X.index.tolist()
             X = X.values
+        else:
+            raw_index = list(range(X.shape[0]))
 
+        assert isinstance(X, np.ndarray)
+        assert X.ndim == 2
         assert X.shape[0] >= 1
         assert X.shape[1] == len(self.coefficients)
+        assert np.isfinite(X).all()
+        assert float(y_desired) in {1.0, -1.0, 0.0}
 
-        U, sample_idx = np.unique(X, axis = 0, return_inverse = True)
-        audit_idx = np.flatnonzero(np.less(U.dot(self.coefficients), self.intercept))
+        U, distinct_idx = np.unique(X, axis = 0, return_inverse = True)
+        scores = U.dot(self.coefficients)
+        if y_desired > 0:
+            audit_idx = np.less(scores, self.intercept)
+        else:
+            audit_idx = np.greater_equal(scores, self.intercept)
 
-        ## run flipsets
-        all_output = []
-        for i in audit_idx:
+        audit_idx = np.flatnonzero(audit_idx)
+        # setup recourse problem
+        builder = RecourseBuilder(coefficients = self.coefficients,
+                                  intercept = self.intercept,
+                                  action_set = self.action_set,
+                                  solver = self.solver,
+                                  x = U[audit_idx[0], :])
 
-            rb = RecourseBuilder(solver = self.solver,
-                                 coefficients = self.coefficients,
-                                 intercept = self.intercept,
-                                 action_set = self.action_set,
-                                 x = U[i, :])
-            output = rb.fit()
-            output['idx'] = i
-            all_output.append({k: output[k] for k in ['feasible', 'cost', 'idx']})
+        # solve recourse problem
+        output = []
+        for idx in audit_idx:
+            builder.x = U[idx, :]
+            info = builder.fit()
+            info['idx'] = idx
+            output.append({k: info[k] for k in ['feasible', 'cost', 'idx']})
 
-        df = pd.DataFrame(all_output)
-        self._df = pd.DataFrame(df)
+        # add in points that were not denied recourse
+        df = pd.DataFrame(output)
+        df = df.set_index('idx')
 
+        # include unique points that attain desired label already
+        df = df.reindex(range(U.shape[0]))
+
+        # include duplicates of original points
+        df = df.iloc[distinct_idx]
+        df = df.reset_index(drop = True)
+        df.index = raw_index
         return df

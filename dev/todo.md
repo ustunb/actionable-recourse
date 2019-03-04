@@ -1,8 +1,6 @@
 ## Alpha Release 
 
-- Auditor class
 - return types for audit
-
 - minimal test for audit and flipset 
 - minimal test for CPLEX vs. Pyomo
 - easy setup
@@ -28,5 +26,3 @@
     - recourse cplex = recourse pyomo
     - track cases where actions are not close and issue warning
  
-
-

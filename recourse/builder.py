@@ -435,7 +435,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
 
         ## initialize base class
-        super().__init__(action_set=action_set, coefficients=coefficients, intercept=intercept, x=x, **kwargs)
+        super().__init__(action_set = action_set, coefficients = coefficients, intercept = intercept, x = x, **kwargs)
 
         # return self
 
@@ -887,14 +887,14 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
-        self.built=False
+        self.built = False
         super().__init__(
-            action_set=action_set,
-            coefficients=coefficients,
-            intercept=intercept,
-            x=x,
-            **kwargs
-        )
+                action_set=action_set,
+                coefficients=coefficients,
+                intercept=intercept,
+                x=x,
+                **kwargs)
+
 
     def _check_mip_build_info(self, build_info):
         ## TODO
@@ -903,7 +903,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
         build_info, indices = super()._get_mip_build_info(
-            cost_function_type=cost_function_type, validate=validate)
+                cost_function_type=cost_function_type, validate=validate)
 
         ## pyomo-specific processing
         c = []
@@ -1014,7 +1014,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
             'y_pred': {None: self.score()},
             'epsilon': {None: epsilon},
             'max_cost': {None: -1000}
-        }}
+            }}
 
         instance = self.model.create_instance(data)
         return instance
@@ -1034,11 +1034,11 @@ class _RecourseBuilderPyomo(RecourseBuilder):
                 'a': instance.a[i],
                 'u': instance.u[i](),
                 'c': instance.c[i]
-            }
+                }
         output_df = (pd.DataFrame
             .from_dict(output, orient="index")
             .loc[lambda df: df['u']==1]
-        )
+            )
         final_output = {}
         final_output['cost'] = instance.max_cost()
         final_output['actions'] = output_df['a'].values
