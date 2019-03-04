@@ -32,6 +32,14 @@ class RecourseAuditor(object):
         # set solver
         self.solver = kwargs.get('solver', DEFAULT_SOLVER)
 
+        # setup recourse problem
+        self.builder = RecourseBuilder(coefficients = self.coefficients,
+                                       intercept = self.intercept,
+                                       action_set = self.action_set,
+                                       solver = self.solver)
+
+
+        # todo: consider setting attributes through builder
 
     def audit(self, X, y_desired = 1):
         """
@@ -66,18 +74,13 @@ class RecourseAuditor(object):
             audit_idx = np.greater_equal(scores, self.intercept)
 
         audit_idx = np.flatnonzero(audit_idx)
-        # setup recourse problem
-        builder = RecourseBuilder(coefficients = self.coefficients,
-                                  intercept = self.intercept,
-                                  action_set = self.action_set,
-                                  solver = self.solver,
-                                  x = U[audit_idx[0], :])
+
 
         # solve recourse problem
         output = []
         for idx in audit_idx:
-            builder.x = U[idx, :]
-            info = builder.fit()
+            self.builder.x = U[idx, :]
+            info = self.builder.fit()
             info['idx'] = idx
             output.append({k: info[k] for k in ['feasible', 'cost', 'idx']})
 
@@ -93,3 +96,4 @@ class RecourseAuditor(object):
         df = df.reset_index(drop = True)
         df.index = raw_index
         return df
+

@@ -1,7 +1,9 @@
+- return types for audit
+
 ## Alpha Release 
 
-- return types for audit
-- minimal test for audit and flipset 
+- minimal test for audit 
+- minimal test for flipset 
 - minimal test for CPLEX vs. Pyomo
 - easy setup
 

@@ -12,6 +12,7 @@ class MyActionSet(ActionSet):
         ## initialize.
         super().__init__(X, names=names)
 
+
 def test_actionset_fake_data():
     a = MyActionSet()
 
