@@ -1,8 +1,11 @@
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse.paths import *
-from recourse.auditor import RecourseAuditor
+
 from recourse.action_set import ActionSet
+from recourse.builder import RecourseBuilder
+from recourse.flipset import Flipset
 
 data_name = 'german'
 data_file = test_dir / ('%s_processed.csv' % data_name)
@@ -25,5 +28,15 @@ clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
 # run audit
-auditor = RecourseAuditor(clf = clf, action_set = action_set)
+denied_idx = np.flatnonzero(clf.predict(X) < 0)
+x = X.values[denied_idx[0]]
+rb = RecourseBuilder(clf = clf, action_set = action_set, x = x, mip_cost_type = 'local')
+
+#fb.max_items = 4
+flipset = Flipset(x = rb.x, variable_names = action_set._names, clf = clf)
+flipset.add(rb.populate(enumeration_type = 'distinct_subsets', total_items = 14))
+print(flipset.to_latex()) #creates latex table for paper
+print(flipset.view()) # displays to screen
+
+auditor = Flipset(clf = clf, action_set = action_set)
 df = auditor.audit(X = X)

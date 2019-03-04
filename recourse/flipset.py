@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+from recourse.helper_functions import parse_classifier_args
 
 # todo enumeration strategy
 # todo method for enumeration
@@ -7,8 +10,6 @@
 # table
 # item | change_in_score | change_in_min_pctile | cost
 # optional to score
-
-
 
 class Flipset(object):
 
@@ -23,17 +24,11 @@ class Flipset(object):
                        'feasible',
                        'flipped']
 
-    def __init__(self, x, variable_names, coefficients, intercept = 0.0):
+    def __init__(self, x, variable_names, **kwargs):
 
         assert isinstance(x, (list, np.ndarray))
-
         x = np.array(x, dtype = np.float_).flatten()
         n_variables = len(x)
-
-        assert isinstance(coefficients, (list, np.ndarray))
-        intercept = float(intercept)
-        assert np.isfinite([intercept])
-
         assert isinstance(variable_names, list)
         assert len(variable_names) == n_variables
         assert all(map(lambda s: isinstance(s, str), variable_names))
@@ -41,8 +36,7 @@ class Flipset(object):
         self._x = x
         self._n_variables = n_variables
         self._variable_names = variable_names
-        self._coefs = np.array(coefficients, dtype = np.float_).flatten()
-        self._intercept = intercept
+        self._coefs, self._intercept = parse_classifier_args(**kwargs)
         self._items = []
 
         self._df = pd.DataFrame(columns = Flipset.df_column_names, dtype = object)
@@ -163,11 +157,11 @@ class Flipset(object):
 
     def validate_item(self, item):
         assert isinstance(item, dict)
-        required_fields = ['feasible', 'actions', 'total_cost']
+        required_fields = ['feasible', 'actions', 'cost']
         for k in required_fields:
             assert k in item, 'item missing field %s' % k
         item['actions'] = self.validate_action(item['actions'])
-        assert item['total_cost'] > 0.0, 'total cost must be positive'
+        assert item['cost'] > 0.0, 'total cost must be positive'
         assert item['feasible'], 'item must be feasible'
         return item
 
@@ -183,7 +177,7 @@ class Flipset(object):
             'size': len(nnz_idx),
             'start_values': x[nnz_idx],
             'final_values': x[nnz_idx] + a[nnz_idx],
-            'total_cost': float(item['total_cost']),
+            'cost': float(item['cost']),
             'final_score': self.score(a),
             'final_prediction': h,
             'feasible': item['feasible'],

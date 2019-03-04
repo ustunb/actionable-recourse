@@ -30,9 +30,4 @@ clf.fit(X, y)
 denied_idx = clf.predict(X) < 0
 X_test = X.iloc[denied_idx].sample(n = n_test_points, random_state = test_seed)
 
-
-auditor_cpx = RecourseAuditor(clf=clf, action_set = action_set, solver = 'cplex')
-df_cpx = auditor_cpx.audit(X = X_test)
-
-auditor_cbc = RecourseAuditor(clf=clf, action_set = action_set, solver = 'cbc')
-df_cbc = auditor_cbc.audit(X = X_test)
+# todo Alex

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import chain
 from collections import defaultdict
-from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+from recourse.defaults import DEFAULT_SOLVER, SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 
@@ -23,18 +23,19 @@ except ImportError:
 
 class RecourseBuilder(object):
 
-    _default_enumeration_type = 'size'
     _default_cost_function = 'size'
     _default_print_flag = True
     _default_check_flag = True
     _default_mip_cost_type = 'max'
+    _default_enumeration_type = 'distinct_subsets'
     _valid_mip_cost_types = {'total', 'local', 'max'}
+    _valid_enumeration_types = {'mutually_exclusive', 'distinct_subsets'}
 
 
     def __new__(cls, **kwargs):
 
         """Factory Method."""
-        solver = kwargs.get("solver")
+        solver = kwargs.get("solver", DEFAULT_SOLVER)
         if not solver in SUPPORTED_SOLVERS:
             raise ValueError("pick solver in: %r" % SUPPORTED_SOLVERS)
         return super().__new__(BUILDER_TO_SOLVER[solver])
@@ -78,6 +79,8 @@ class RecourseBuilder(object):
 
         # attach features
         self._x = None
+        if x is not None:
+            self.x = x
 
         assert self._check_rep()
 
@@ -218,7 +221,7 @@ class RecourseBuilder(object):
     def prediction(self, x = None):
         return np.sign(self.score(x))
 
-    #### flipset mip ####
+    #### recourse ip ####
 
     @property
     def mip(self):
@@ -414,6 +417,56 @@ class RecourseBuilder(object):
         return True
 
 
+    #### basic fitting functions ###
+    def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', time_limit = None, node_limit = None):
+
+        assert isinstance(total_items, int) and total_items >= 1
+        assert enumeration_type in self._valid_enumeration_types
+
+        # set the remove solution method
+        if enumeration_type == 'mutually_exclusive':
+            remove_solution = self.remove_all_features
+        else:
+            remove_solution = self.remove_feature_combination
+
+        # setup MIP
+        mip = self.mip
+
+        # update time limit
+        if time_limit is not None:
+            mip = set_mip_time_limit(mip, time_limit)
+
+        if node_limit is not None:
+            mip = set_mip_node_limit(mip, node_limit)
+
+        # enumerate soluitions
+        k = 0
+        all_info = []
+        populate_start_time = time.process_time()
+
+        while k < total_items:
+
+            # solve mip
+            start_time = time.process_time()
+            mip.solve()
+            run_time = time.process_time() - start_time
+            info = self.solution_info
+            info['runtime'] = run_time
+
+            if not info['feasible']:
+                if self.print_flag:
+                    print('recovered all minimum-cost items')
+                break
+
+            all_info.append(info)
+            remove_solution()
+            k += 1
+
+        if self.print_flag:
+            print('obtained %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
+
+        return all_info
+
 
 class _RecourseBuilderCPX(RecourseBuilder):
 
@@ -421,7 +474,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
     _default_cplex_parameters = dict(DEFAULT_CPLEX_PARAMETERS)
 
 
-    def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
+    def __init__(self, action_set, x = None, **kwargs):
         """
         :param x: vector of input variables for person x
         :param intercept: intercept value of score function
@@ -434,7 +487,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
 
         ## initialize base class
-        super().__init__(action_set = action_set, coefficients = coefficients, intercept = intercept, x = x, **kwargs)
+        super().__init__(action_set = action_set, x = x, **kwargs)
 
         # return self
 
@@ -819,7 +872,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
     def remove_feature_combination(self):
 
         mip = self.mip
-
         u_names = self.mip_indices['action_off_names']
         u = np.array(mip.solution.get_values(u_names))
         on_idx = np.isclose(u, 0.0)
@@ -835,64 +887,16 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return
 
 
-    def populate(self, total_items = 10, time_limit = None, node_limit = None, display_flag = False, enumeration_type = 'distinct_subsets'):
 
-        mip = self.mip
-        mip = set_cpx_display_options(mip, display_mip = False, display_lp = display_flag, display_parameters = display_flag)
-
-        # update time limit
-        if time_limit is not None:
-            mip = set_mip_time_limit(mip, time_limit)
-
-        if node_limit is not None:
-            mip = set_mip_node_limit(mip, node_limit)
-
-        if enumeration_type == 'mutually_exclusive':
-            remove_solution = self.remove_all_features
-        else:
-            remove_solution = self.remove_feature_combination
-
-        # enumerate soluitions
-        k = 0
-        all_info = []
-        populate_start_time = mip.get_time()
-
-        while k < total_items:
-
-            # solve mip
-            start_time = mip.get_time()
-            mip.solve()
-            run_time = mip.get_time() - start_time
-            info = self.solution_info
-            info['runtime'] = run_time
-
-            if not info['feasible']:
-                if self.print_flag:
-                    print('recovered all minimum-cost items')
-                break
-
-            all_info.append(info)
-            remove_solution()
-            k += 1
-
-        if self.print_flag:
-            print('mined %d items in %1.1f seconds' % (k, mip.get_time() - populate_start_time))
-
-        return all_info
 
 
 
 class _RecourseBuilderPyomo(RecourseBuilder):
 
 
-    def __init__(self, action_set, coefficients, intercept = 0.0, x = None, **kwargs):
+    def __init__(self, action_set, x = None, **kwargs):
         self.built = False
-        super().__init__(
-                action_set=action_set,
-                coefficients=coefficients,
-                intercept=intercept,
-                x=x,
-                **kwargs)
+        super().__init__(action_set = action_set, x = x, **kwargs)
 
 
     def _check_mip_build_info(self, build_info):
@@ -1020,6 +1024,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def fit(self):
+
         instance = self.instantiate_mip()
         opt = SolverFactory('cbc')
         start = time.time()
@@ -1034,10 +1039,12 @@ class _RecourseBuilderPyomo(RecourseBuilder):
                 'u': instance.u[i](),
                 'c': instance.c[i]
                 }
+
         output_df = (pd.DataFrame
             .from_dict(output, orient="index")
             .loc[lambda df: df['u']==1]
             )
+
         final_output = {}
         final_output['cost'] = instance.max_cost()
         final_output['actions'] = output_df['a'].values
