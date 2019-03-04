@@ -1,15 +1,13 @@
 import numpy as np
 import pandas as pd
 from recourse.helper_functions import parse_classifier_args
+from recourse.action_set import ActionSet
+from recourse.builder import RecourseBuilder
 
 # todo enumeration strategy
 # todo method for enumeration
 # todo improve cost function type implementation ('maxpct' / 'logpct' / 'euclidean')
 # todo base_mip / rebuild mip when required
-
-# table
-# item | change_in_score | change_in_min_pctile | cost
-# optional to score
 
 class Flipset(object):
 
@@ -24,23 +22,21 @@ class Flipset(object):
                        'feasible',
                        'flipped']
 
-    def __init__(self, x, variable_names, **kwargs):
+    def __init__(self, x, action_set, **kwargs):
 
         assert isinstance(x, (list, np.ndarray))
         x = np.array(x, dtype = np.float_).flatten()
-        n_variables = len(x)
-        assert isinstance(variable_names, list)
-        assert len(variable_names) == n_variables
-        assert all(map(lambda s: isinstance(s, str), variable_names))
-
+        assert isinstance(action_set, ActionSet)
+        self.action_set = action_set
         self._x = x
-        self._n_variables = n_variables
-        self._variable_names = variable_names
+        self._n_variables = len(action_set)
+        self._variable_names = action_set.name
         self._coefs, self._intercept = parse_classifier_args(**kwargs)
         self._items = []
-
         self._df = pd.DataFrame(columns = Flipset.df_column_names, dtype = object)
         self._sort_args = {'by': ['size', 'total_cost', 'final_score'], 'inplace': True, 'axis': 0}
+
+        # setup builder
 
 
     @property
@@ -113,6 +109,13 @@ class Flipset(object):
     def yhat(self):
         return self._intercept + np.dot(self._coefs, self._x)
 
+
+    def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', mip_cost_type = 'local', time_limit = None, node_limit = None):
+        self._builder = RecourseBuilder(action_set = self.action_set, x = self.x, coefficients = self._coefs, intercept = self._intercept, mip_cost_type = mip_cost_type)
+        items = self._builder.populate(total_items = total_items, enumeration_type = enumeration_type, time_limit = time_limit, node_limit = node_limit)
+        self.add(items)
+
+
     #### built ins ####
 
 
@@ -123,8 +126,6 @@ class Flipset(object):
     def __repr__(self):
         return str(self._items)
 
-
-    #### methods ####
 
     def predict(self, actions = None):
         return np.sign(self.score(actions))
@@ -141,12 +142,12 @@ class Flipset(object):
         if isinstance(items, dict):
             items = [items]
         assert isinstance(items, list)
-        items = list(map(lambda i: self.validate_item(i), items))
+        items = list(map(lambda i: self._validate_item(i), items))
         self._items.extend(items)
         self._update_df(items)
 
 
-    def validate_action(self, a):
+    def _validate_action(self, a):
         a = np.array(a, dtype = np.float_).flatten()
         assert len(a) == self.n_variables, 'action vector must have %d elements' % self.n_variables
         assert np.all(np.isfinite(a)), 'actions must be finite'
@@ -155,18 +156,18 @@ class Flipset(object):
         return a
 
 
-    def validate_item(self, item):
+    def _validate_item(self, item):
         assert isinstance(item, dict)
         required_fields = ['feasible', 'actions', 'cost']
         for k in required_fields:
             assert k in item, 'item missing field %s' % k
-        item['actions'] = self.validate_action(item['actions'])
+        item['actions'] = self._validate_action(item['actions'])
         assert item['cost'] > 0.0, 'total cost must be positive'
         assert item['feasible'], 'item must be feasible'
         return item
 
 
-    def item_to_df_row(self, item):
+    def _item_to_df_row(self, item):
         x = self.x
         a = item['actions']
         h = self.predict(a)
@@ -189,7 +190,7 @@ class Flipset(object):
 
     def _update_df(self, items):
         if len(items) > 0:
-            row_data = list(map(lambda item: self.item_to_df_row(item), items))
+            row_data = list(map(lambda item: self._item_to_df_row(item), items))
             self._df = self._df.append(row_data, ignore_index = True)[self._df.columns.tolist()]
             self.sort()
 

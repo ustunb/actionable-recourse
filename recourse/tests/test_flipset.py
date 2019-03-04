@@ -2,9 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse.paths import *
-
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder
 from recourse.flipset import Flipset
 
 data_name = 'german'
@@ -27,16 +25,12 @@ action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')
 clf.fit(X, y)
 
-# run audit
+
 denied_idx = np.flatnonzero(clf.predict(X) < 0)
-x = X.values[denied_idx[0]]
-rb = RecourseBuilder(clf = clf, action_set = action_set, x = x, mip_cost_type = 'local')
+i = denied_idx[0]
 
-#fb.max_items = 4
-flipset = Flipset(x = rb.x, variable_names = action_set._names, clf = clf)
-flipset.add(rb.populate(enumeration_type = 'distinct_subsets', total_items = 14))
-print(flipset.to_latex()) #creates latex table for paper
-print(flipset.view()) # displays to screen
-
-auditor = Flipset(clf = clf, action_set = action_set)
-df = auditor.audit(X = X)
+# generate flipset for person i
+flipset = Flipset(x = X.values[i], action_set = action_set, clf = clf)
+flipset.populate(total_items = 5)
+flipset.to_latex()
+flipset.view()

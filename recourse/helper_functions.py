@@ -36,7 +36,7 @@ def parse_classifier_args(*args, **kwargs):
             w = args[0].coef_
             t = args[0].intercept_
 
-        elif isinstance(args[0], (np.array, list)):
+        elif isinstance(args[0], (list, np.ndarray)):
 
             w = args[0].flatten()
             t = 0.0
