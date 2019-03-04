@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+pd.set_option('display.max_columns', 10)
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
@@ -35,8 +36,6 @@ class Flipset(object):
         self._items = []
         self._df = pd.DataFrame(columns = Flipset.df_column_names, dtype = object)
         self._sort_args = {'by': ['size', 'total_cost', 'final_score'], 'inplace': True, 'axis': 0}
-
-        # setup builder
 
 
     @property
