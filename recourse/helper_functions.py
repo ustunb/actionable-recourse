@@ -39,7 +39,7 @@ def parse_classifier_args(*args, **kwargs):
 
         elif isinstance(args[0], (list, np.ndarray)):
 
-            w = args[0].flatten()
+            w = np.array(args[0]).flatten()
             t = 0.0
 
     elif len(args) == 2:

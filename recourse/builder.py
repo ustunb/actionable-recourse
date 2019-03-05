@@ -194,7 +194,7 @@ class RecourseBuilder(object):
         x = np.array(x, dtype = np.float_).flatten()
         assert len(x) == self.n_variables
         self._x = x
-        ## TODO why is this here?? mixed functionality
+        ## TODO why is this here? mixed functionality
         self.build_mip()
 
     #### model ####
@@ -429,35 +429,18 @@ class RecourseBuilder(object):
         else:
             remove_solution = self.remove_feature_combination
 
-        # setup MIP
-        mip = self.mip
-
-        # update time limit
-        if time_limit is not None:
-            mip = set_mip_time_limit(mip, time_limit)
-
-        if node_limit is not None:
-            mip = set_mip_node_limit(mip, node_limit)
-
         # enumerate soluitions
         k = 0
         all_info = []
         populate_start_time = time.process_time()
 
         while k < total_items:
-
             # solve mip
-            start_time = time.process_time()
-            mip.solve()
-            run_time = time.process_time() - start_time
-            info = self.solution_info
-            info['runtime'] = run_time
-
+            info = self.fit(time_limit=time_limit, node_limit=node_limit)
             if not info['feasible']:
                 if self.print_flag:
                     print('recovered all minimum-cost items')
                 break
-
             all_info.append(info)
             remove_solution()
             k += 1
@@ -488,9 +471,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         ## initialize base class
         super().__init__(action_set = action_set, x = x, **kwargs)
-
-        # return self
-
 
 
     def set_mip_item_limits(self, min_items = None, max_items = None):
@@ -868,7 +848,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
         mip.variables.set_lower_bounds([(names[j], 1.0) for j in on_idx])
         return
 
-
     def remove_feature_combination(self):
 
         mip = self.mip
@@ -1023,8 +1002,15 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         return instance
 
 
-    def fit(self):
+    def fit(self, time_limit=None, node_limit=None, diplay_flag=False):
+        """
+        TODO: implement time_limit and node_limit for Pyomo to match CPLEX.
 
+        :param time_limit:
+        :param node_limit:
+        :param diplay_flag:
+        :return:
+        """
         instance = self.instantiate_mip()
         opt = SolverFactory('cbc')
         start = time.time()
