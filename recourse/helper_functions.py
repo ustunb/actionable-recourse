@@ -25,6 +25,12 @@ def parse_classifier_args(*args, **kwargs):
         w = kwargs['clf'].coef_
         t = kwargs['clf'].intercept_
 
+    elif 'classifier' in kwargs:
+
+        assert is_sklearn_linear_classifier(kwargs['classifier'])
+        w = kwargs['classifier'].coef_
+        t = kwargs['classifier'].intercept_
+
     elif 'coefficients' in kwargs:
 
         w = kwargs.get('coefficients')
