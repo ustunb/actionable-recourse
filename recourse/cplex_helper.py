@@ -3,7 +3,6 @@ import numpy as np
 from functools import reduce
 from cplex import Cplex, SparsePair
 from cplex.exceptions import CplexError
-from cplex.callbacks import MIPInfoCallback
 
 # Convenience Functions when working with MIP
 
@@ -17,7 +16,7 @@ def copy_cplex(cpx):
 
 
 # Building
-def add_variable(cpx, name, obj, ub, lb, vtype):
+def add_variable_cpx(cpx, name, obj, ub, lb, vtype):
 
     # name
     if isinstance(name, np.ndarray):
@@ -261,7 +260,7 @@ def set_cpx_display_options(cpx, display_mip = True, display_parameters = False,
     return cpx
 
 
-def set_mip_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
+def set_cpx_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
 
     # get parameter handle
     p = cpx.parameters
@@ -305,15 +304,15 @@ def set_mip_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
     p.mip.tolerances.absmipgap.set(param['absmipgap'])
 
     if param['time_limit'] < DEFAULT_CPLEX_PARAMETERS['time_limit']:
-        cpx = set_mip_time_limit(cpx, param['time_limit'])
+        cpx = set_cpx_time_limit(cpx, param['time_limit'])
 
     if param['node_limit'] < DEFAULT_CPLEX_PARAMETERS['node_limit']:
-        cpx = set_mip_node_limit(cpx, param['node_limit'])
+        cpx = set_cpx_node_limit(cpx, param['node_limit'])
 
     return cpx
 
 
-def get_mip_parameters(cpx):
+def get_cpx_parameters(cpx):
 
     p = cpx.parameters
 
@@ -370,7 +369,7 @@ def set_mip_cutoff_values(cpx, objval, objval_increment):
     return cpx
 
 
-def set_mip_time_limit(cpx, time_limit = None):
+def set_cpx_time_limit(cpx, time_limit = None):
     """
 
     :param cpx:
@@ -390,7 +389,7 @@ def set_mip_time_limit(cpx, time_limit = None):
     return cpx
 
 
-def set_mip_node_limit(cpx, node_limit = None):
+def set_cpx_node_limit(cpx, node_limit = None):
     """
 
     :param cpx:
@@ -409,7 +408,7 @@ def set_mip_node_limit(cpx, node_limit = None):
     return cpx
 
 
-def toggle_mip_preprocessing(cpx, toggle = True):
+def toggle_cpx_preprocessing(cpx, toggle = True):
     """toggles pre-processing on/off for debugging / computational experiments"""
 
     # presolve
@@ -465,7 +464,7 @@ def toggle_mip_preprocessing(cpx, toggle = True):
 
 # Solution Statistics
 
-def get_mip_stats(cpx):
+def get_stats_cpx(cpx):
     """returns information associated with the current best solution for the mip"""
 
     INITIAL_SOLUTION_INFO = {
@@ -515,7 +514,7 @@ def get_mip_stats(cpx):
 
 # Initialization
 
-def add_mip_start(cpx, solution, effort_level = 1, name = None):
+def add_mip_start_cpx(cpx, solution, effort_level = 1, name = None):
     """
     :param cpx:
     :param solution:

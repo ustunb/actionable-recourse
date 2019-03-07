@@ -10,7 +10,7 @@ from recourse.action_set import ActionSet
 
 try:
     from cplex import Cplex, SparsePair
-    from recourse.cplex_helper import set_mip_parameters, set_cpx_display_options, set_mip_time_limit, set_mip_node_limit, toggle_mip_preprocessing, DEFAULT_CPLEX_PARAMETERS
+    from recourse.cplex_helper import set_cpx_parameters, set_cpx_display_options, set_cpx_time_limit, set_cpx_node_limit, toggle_cpx_preprocessing, DEFAULT_CPLEX_PARAMETERS
 except ImportError:
     pass
 
@@ -59,6 +59,7 @@ class RecourseBuilder(object):
         assert len(action_set) == len(self._coefficients)
         if not action_set.aligned:
             action_set.align(self._coefficients)
+
         self._action_set = action_set
 
         # add indices
@@ -194,7 +195,6 @@ class RecourseBuilder(object):
         x = np.array(x, dtype = np.float_).flatten()
         assert len(x) == self.n_variables
         self._x = x
-        ## TODO why is this here? mixed functionality
         self.build_mip()
 
     #### model ####
@@ -433,10 +433,9 @@ class RecourseBuilder(object):
         k = 0
         all_info = []
         populate_start_time = time.process_time()
-
         while k < total_items:
             # solve mip
-            info = self.fit(time_limit=time_limit, node_limit=node_limit)
+            info = self.fit(time_limit = time_limit, node_limit = node_limit)
             if not info['feasible']:
                 if self.print_flag:
                     print('recovered all minimum-cost items')
@@ -449,6 +448,8 @@ class RecourseBuilder(object):
             print('obtained %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
 
         return all_info
+
+
 
 
 class _RecourseBuilderCPX(RecourseBuilder):
@@ -805,12 +806,12 @@ class _RecourseBuilderCPX(RecourseBuilder):
         if param is None:
             param = self._cpx_parameters
 
-        cpx = set_mip_parameters(cpx, param)
+        cpx = set_cpx_parameters(cpx, param)
         return cpx
 
 
     def toggle_preprocessing(self, toggle = True):
-        self._mip = toggle_mip_preprocessing(self._mip, toggle)
+        self._mip = toggle_cpx_preprocessing(self._mip, toggle)
 
 
     #### solving, enumeration, validation ####
@@ -824,10 +825,10 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         # update time limit
         if time_limit is not None:
-            mip = set_mip_time_limit(mip, time_limit)
+            mip = set_cpx_time_limit(mip, time_limit)
 
         if node_limit is not None:
-            mip = set_mip_node_limit(mip, node_limit)
+            mip = set_cpx_node_limit(mip, node_limit)
 
         # solve
         start_time = mip.get_time()
@@ -836,7 +837,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         info = self.solution_info
         info['runtime'] = end_time
-        # assert self._check_solution(info)
         return info
 
 
@@ -847,6 +847,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         on_idx = np.flatnonzero(np.isclose(values, 0.0))
         mip.variables.set_lower_bounds([(names[j], 1.0) for j in on_idx])
         return
+
 
     def remove_feature_combination(self):
 
@@ -864,9 +865,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
                                    senses = ["L"],
                                    rhs = [float(con_rhs)])
         return
-
-
-
 
 
 
