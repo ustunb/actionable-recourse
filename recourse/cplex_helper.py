@@ -397,12 +397,13 @@ def set_cpx_node_limit(cpx, node_limit = None):
     :return:
     """
     max_node_limit = cpx.parameters.mip.limits.nodes.max()
-    if node_limit is not None:
+    if node_limit == float('inf'):
+        node_limit = max_node_limit
+    elif node_limit is None:
+        node_limit = max_node_limit
+    else:
         node_limit = int(node_limit)
         node_limit = min(node_limit, max_node_limit)
-    else:
-        node_limit = max_node_limit
-
     assert node_limit >= 0.0
     cpx.parameters.mip.limits.nodes.set(node_limit)
     return cpx

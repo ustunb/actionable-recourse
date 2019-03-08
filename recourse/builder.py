@@ -23,16 +23,15 @@ except ImportError:
 
 class RecourseBuilder(object):
 
-    _default_cost_function = 'size'
     _default_print_flag = True
     _default_check_flag = True
+    _default_node_limit = float('inf')
+    _default_time_limit = float('inf')
     _default_mip_cost_type = 'max'
     _default_enumeration_type = 'distinct_subsets'
     _valid_mip_cost_types = {'total', 'local', 'max'}
     _valid_enumeration_types = {'mutually_exclusive', 'distinct_subsets'}
 
-
-    #### built-ins ####
     def __new__(cls, **kwargs):
 
         """Factory Method."""
@@ -75,7 +74,6 @@ class RecourseBuilder(object):
         # initialize Cplex MIP
         self._mip = None
         self._mip_cost_type = kwargs.get('mip_cost_type', self._default_mip_cost_type)
-        self._mip_indices = dict()
         self._min_items = 0
         self._max_items = self.n_actionable
 
@@ -87,7 +85,6 @@ class RecourseBuilder(object):
         assert self._check_rep()
 
 
-    #### internal representation ####
     def _check_rep(self):
         """
         :return: True if representation invariants are true
@@ -104,7 +101,7 @@ class RecourseBuilder(object):
 
     @property
     def check_flag(self):
-        return bool(self._check_flag)
+        return self._check_flag
 
 
     @check_flag.setter
@@ -120,7 +117,7 @@ class RecourseBuilder(object):
     #### printing ####
     @property
     def print_flag(self):
-        return bool(self._print_flag)
+        return self._print_flag
 
 
     @print_flag.setter
@@ -134,14 +131,14 @@ class RecourseBuilder(object):
 
 
     def __repr__(self):
-        return self.tabulate()
-
-
-    def tabulate(self):
         return str(self.action_set)
 
 
     #### immutable properties ####
+    @property
+    def action_set(self):
+        return self._action_set
+
 
     @property
     def variable_names(self):
@@ -159,18 +156,8 @@ class RecourseBuilder(object):
 
 
     @property
-    def action_set(self):
-        return self._action_set
-
-
-    @property
     def actionable_indices(self):
         return self._actionable_indices
-
-
-    @property
-    def actionable_names(self):
-        return self._action_set[self._actionable_indices].name
 
 
     @property
@@ -179,25 +166,23 @@ class RecourseBuilder(object):
 
 
     #### feature values ####
-
     @property
     def x(self):
         return np.array(self._x)
 
+
     @x.setter
     def x(self, x):
-        assert isinstance(x, (np.ndarray, list))
+        assert isinstance(x, (list, np.ndarray))
         x = np.array(x, dtype = np.float_).flatten()
         assert len(x) == self.n_variables
         self._x = x
         self.build_mip()
 
     #### model ####
-
     @property
     def coefficients(self):
         return self._coefficients
-
 
     @property
     def intercept(self):
@@ -216,8 +201,7 @@ class RecourseBuilder(object):
     def prediction(self, x = None):
         return np.sign(self.score(x))
 
-    #### recourse ip ####
-
+    #### MIP ####
     @property
     def mip(self):
         return self._mip
@@ -228,20 +212,90 @@ class RecourseBuilder(object):
         return self._mip_cost_type
 
 
-    @mip_cost_type.setter
-    def mip_cost_type(self, t = None):
+    @property
+    def mip_display(self):
+        return self._mip_display_flag
 
-        if t is None:
-            t = str(self._default_mip_cost_type)
+
+    @property
+    def mip_time_limit(self):
+        return self._mip_time_limit
+
+
+    @property
+    def mip_node_limit(self):
+        return self._mip_node_limit
+
+
+    @mip_time_limit.setter
+    def mip_time_limit(self, value):
+        if value is None:
+            value = self._default_time_limit
+        elif isinstance(value, (float, int)) and value > 0.0:
+            value = float(value)
         else:
-            assert t in self._valid_mip_cost_types, 'mip_cost_type must None, %r' % self._valid_mip_cost_types
-
-        if t != self._mip_cost_type:
-            self._mip_cost_type = t
-            self.build_mip()
+            raise ValueError('time limit must be positive or inf')
+        self._set_mip_time_limit(self.mip, value)
+        self._mip_time_limit = value
 
 
-    #### MIP item limits ####
+    @mip_time_limit.setter
+    def mip_node_limit(self, value):
+        if value is None:
+            value = self._default_node_limit
+        elif isinstance(value, (float, int)) and value > 0:
+            value = float(value)
+        else:
+            raise ValueError('node limit must be positive integer or inf')
+        self._set_mip_node_limit(self.mip, value)
+        self._mip_node_limit = value
+
+
+    @mip_display.setter
+    def mip_display(self, flag):
+        """
+        sets display flag for mip
+        :param display_flag:
+        :return:
+        """
+        if flag is None:
+            flag = self._default_print_flag
+        elif not isinstance(flag, bool):
+            raise ValueError('mip_display must be boolean')
+        self._set_mip_display(self.mip, flag)
+        self._mip_node_limit = flag
+
+
+    #### mip item limits ####
+    def set_mip_item_limits(self, min_items = None, max_items = None):
+        """
+        changes limits for the number of items
+        :param min_items:
+        :param max_items:
+        :return:
+        """
+
+        if min_items is None or max_items is None:
+            return
+
+        min_items = self.min_items if min_items is None else int(min_items)
+        max_items = self.max_items if min_items is None else int(max_items)
+        assert min_items <= max_items, 'incompatible sizes'
+
+        min_items = int(min_items)
+        if min_items != self.min_items:
+            min_nnz_actions = float(self.n_actionable - min_items)
+            self.set_mip_min_items(min_nnz_actions)
+            self.min_items = min_items
+
+        if max_items != self.max_items:
+            max_nnz_actions = float(self.n_actionable - max_items)
+            self.set_mip_max_items(min_nnz_actions)
+            self.max_items = max_items
+
+        return
+
+
     @property
     def min_items(self):
         return int(self._min_items)
@@ -272,41 +326,10 @@ class RecourseBuilder(object):
             self._max_items = min(k, self.n_actionable)
 
 
-    def set_mip_item_limits(self, min_items = None, max_items = None):
-        """
-        changes limits for the number of items
-        :param min_items:
-        :param max_items:
-        :return:
-        """
-
-        if min_items is None or max_items is None:
-            return
-
-        min_items = self.min_items if min_items is None else int(min_items)
-        max_items = self.max_items if min_items is None else int(max_items)
-        assert min_items <= max_items, 'incompatible sizes'
-
-        min_items = int(min_items)
-        if min_items != self.min_items:
-            min_nnz_actions = float(self.n_actionable - min_items)
-            self.set_mip_min_items(min_nnz_actions)
-            self.min_items = min_items
-
-        if max_items != self.max_items:
-            max_nnz_actions = float(self.n_actionable - max_items)
-            self.set_mip_max_items(min_nnz_actions)
-            self.max_items = max_items
-
-        return
-
-
-    #### MIP stamping ####
+    #### mip stamping ####
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
 
-        #
         build_info = {}
-        indices = defaultdict(list)
         if self.mip_cost_type == 'local':
             cost_up = lambda c: np.log((1.0 - c[0])/(1.0 - c))
             cost_dn = lambda c: np.log((1.0 - c) / (1.0 - c[0]))
@@ -314,6 +337,7 @@ class RecourseBuilder(object):
             cost_up = lambda c: c - c[0]
             cost_dn = lambda c: c[0] - c
 
+        indices = defaultdict(list)
         if cost_function_type == 'percentile':
 
             actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_immutable = False)
@@ -367,7 +391,6 @@ class RecourseBuilder(object):
                     indices['cost_ub'].append(float(np.max(c)))
                     indices['cost_df'].append(float(np.min(dc)))
 
-
         if validate:
             assert self._check_mip_build_info(build_info)
 
@@ -396,50 +419,18 @@ class RecourseBuilder(object):
 
         return True
 
-    ### mip manipulation ###
-
-    def set_mip_time_limit(self, time_limit):
-        """
-        Sets time limit for MIP
-        :param time_limit:
-        :return:
-        """
-        if time_limit is not None:
-            assert isinstance(time_limit, (int, float)) and time_limit > 0
-            self._set_mip_time_limit(self.mip, time_limit)
-
-
-    def set_mip_node_limit(self, node_limit):
-        """
-        Sets node limit for MIP
-        :param node_limit: # of nodes that can be processed before MIP
-        :return:
-        """
-        if node_limit is not None:
-            assert isinstance(node_limit, (int, float)) and node_limit > 0
-            self._set_mip_node_limit(self.mip, node_limit)
-
-
-    def set_mip_display(self, display_flag):
-        """
-        sets display flag for mip
-        :param display_flag:
-        :return:
-        """
-        if display_flag is not None:
-            assert isinstance(display_flag, bool)
-            self._set_mip_display(self.mip, display_flag)
-
-
-    ##### mip solutions ####
+    #### mip solutions ####
     @property
-    def infeasible_info(self):
+    def _empty_mip_solution_info(self):
+        """
+        :return: dictionary containing the output of the MIP.
+                 default values correspond to a case where the model is infeasible
+        """
 
         info = {
             'cost': float('inf'),
             'feasible': False,
             'status': 'no solution exists',
-            'status_code': float('nan'),
             #
             'costs': np.repeat(np.nan, self.n_variables),
             'actions': np.repeat(np.nan, self.n_variables),
@@ -450,17 +441,16 @@ class RecourseBuilder(object):
             'iterations': 0,
             'nodes_processed': 0,
             'nodes_remaining': 0,
-            'runtime': 0,
+            'runtime': 0.0,
             }
 
         return info
 
 
-    def _check_solution(self, info):
+    def _check_mip_solution(self, info):
         """
         :return: return True if making the change from the Flipset will actually 'flip' the prediction for the classifier
         """
-
         if info['feasible']:
             a = info['actions']
             all_idx = np.arange(len(a))
@@ -491,8 +481,7 @@ class RecourseBuilder(object):
                 # check total cost
                 if self.mip_cost_type == 'max':
                     if not np.isclose(info['cost'], np.max(info['costs']), rtol = 1e-4):
-                        warnings.warn('numerical issue: max_cost is %1.2f but maximum of cost[j] is %1.2f' % (
-                            info['cost'], np.max(info['costs'])))
+                        warnings.warn('numerical issue: max_cost is %1.2f but maximum of cost[j] is %1.2f' % (info['cost'], np.max(info['costs'])))
                 elif self.mip_cost_type == 'total':
                     assert np.isclose(info['cost'], np.sum(info['costs']))
 
@@ -501,30 +490,44 @@ class RecourseBuilder(object):
 
         return True
 
-    #### main auditing and enumeration functions ####
-    def fit(self, time_limit = None, node_limit = None, display_flag = False):
 
-        if self._mip is None:
-            return self.infeasible_info
+    def fit(self, time_limit = None, node_limit = None, display_flag = False):
+        """
+        Solve recourse problem
+        :param time_limit:
+        :param node_limit:
+        :param display_flag:
+        :return:
+        """
+
+        assert self._mip is not None, 'must first initialize recourse IP'
 
         # update time limit and node limit
-        self.set_mip_display(display_flag)
-        self.set_mip_time_limit(time_limit)
-        self.set_mip_node_limit(node_limit)
+        self.mip_display = display_flag
+        self.mip_time_limit = time_limit
+        self.mip_node_limit = node_limit
 
         # solve
         start_time = time.process_time()
         self.solve_mip()
         end_time = time.process_time() - start_time
-
         info = self.solution_info
         info['runtime'] = end_time
         return info
 
 
     def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', time_limit = None, node_limit = None, display_flag = False):
-
-        assert isinstance(total_items, int) and total_items >= 1
+        """
+        Repeatedly solve recourse problem to recover successive optima
+        :param total_items:
+        :param enumeration_type:
+        :param time_limit:
+        :param node_limit:
+        :param display_flag:
+        :return:
+        """
+        assert self._mip is not None, 'must first initialize recourse IP'
+        assert (isinstance(total_items, int) and total_items >= 1) or (isinstance(total_items, float) and total_items == float('inf'))
         assert enumeration_type in self._valid_enumeration_types
 
         # set the remove solution method
@@ -534,16 +537,17 @@ class RecourseBuilder(object):
             remove_solution = self.remove_feature_combination
 
         # update time limit and node limit
-        self.set_mip_display(display_flag)
-        self.set_mip_time_limit(time_limit)
-        self.set_mip_node_limit(node_limit)
+        self.mip_display = display_flag
+        self.mip_time_limit = time_limit
+        self.mip_node_limit = node_limit
 
         # enumerate soluitions
         k = 0
         all_info = []
         populate_start_time = time.process_time()
         while k < total_items:
-            info = self.solve_mip()
+            self.solve_mip()
+            info = self.solution_info
             if not info['feasible']:
                 if self.print_flag:
                     print('recovered all minimum-cost items')
@@ -558,6 +562,9 @@ class RecourseBuilder(object):
         return all_info
 
 
+
+
+#### CPLEX
 
 class _RecourseBuilderCPX(RecourseBuilder):
 
@@ -591,20 +598,13 @@ class _RecourseBuilderCPX(RecourseBuilder):
         :return:
         """
 
-        # setup MIP related parameters
+        # MIP parameters
         cost_type = self.mip_cost_type
-        min_items = self.min_items
+        min_items = max(self.min_items, 1)
         max_items = self.max_items
-        #assert min_items <= max_items
 
         # cost/action information
         build_info, indices = self._get_mip_build_info()
-
-        # if build_info is empty, then reset mip and return
-        if len(build_info) == 0:
-            self._mip = None
-            self._mip_indices = dict()
-            return
 
         # initialize mip
         mip = Cplex()
@@ -655,8 +655,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
         # min_size <= size:
         # min_size          <=  n_actionable - sum_j u[j][0]
         # sum_j u[j][0]     <=  n_actionable - min_size
-        min_items = max(min_items, 1)
-        max_items = min(max_items, n_actionable)
         size_expr = SparsePair(ind = indices['action_off_names'], val = [1.0] * n_actionable)
         cons.add(names = ['max_items', 'min_items'],
                  lin_expr = [size_expr, size_expr],
@@ -664,7 +662,12 @@ class _RecourseBuilderCPX(RecourseBuilder):
                  rhs = [float(n_actionable - max_items), float(n_actionable - min_items)])
 
         # add constraints for cost function
-        if cost_type == 'max':
+        if cost_type in ('total', 'local'):
+            indices.pop('cost_var_names')
+            objval_pairs = list(chain(*[list(zip(v['action_ind_names'], v['costs'])) for v in build_info.values()]))
+            mip.objective.set_linear(objval_pairs)
+
+        elif cost_type == 'max':
 
             indices['max_cost_var_name'] = ['max_cost']
             indices['epsilon'] = np.min(indices['cost_df']) / np.sum(indices['cost_ub'])
@@ -721,16 +724,10 @@ class _RecourseBuilderCPX(RecourseBuilder):
             #              senses = ["G"],
             #              rhs = [0.0])
 
-        elif cost_type in ('total', 'local'):
-
-            indices.pop('cost_var_names')
-            objval_pairs = list(chain(*[list(zip(v['action_ind_names'], v['costs'])) for v in build_info.values()]))
-            mip.objective.set_linear(objval_pairs)
 
         mip = set_cpx_parameters(mip, self._cpx_parameters)
         self._mip = mip
         self._mip_indices = indices
-
 
     @property
     def mip_indices(self):
@@ -761,7 +758,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         assert hasattr(self._mip, 'solution')
         mip = self._mip
         sol = mip.solution
-
+        info = self._empty_mip_solution_info
         if sol.is_primal_feasible():
 
             indices = self._mip_indices
@@ -783,10 +780,9 @@ class _RecourseBuilderCPX(RecourseBuilder):
             costs = np.zeros(self.n_variables)
             np.put(costs, variable_idx, cost_values)
 
-            info = {
+            info.update({
                 'feasible': True,
                 'status': sol.get_status_string(),
-                'status_code': sol.get_status(),
                 #
                 'actions': actions,
                 'costs': costs,
@@ -798,7 +794,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 'iterations': sol.progress.get_num_iterations(),
                 'nodes_processed': sol.progress.get_num_nodes_processed(),
                 'nodes_remaining': sol.progress.get_num_nodes_remaining()
-                }
+                })
 
             if self.mip_cost_type == 'max':
                 info['cost'] = sol.get_values(indices['max_cost_var_name'])[0]
@@ -807,7 +803,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         else:
 
-            info = self.infeasible_info
             info.update({
                 'iterations': sol.progress.get_num_iterations(),
                 'nodes_processed': sol.progress.get_num_nodes_processed(),
@@ -815,52 +810,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 })
 
         return info
-
-
-    def _check_solution(self, info):
-        """
-        :return: return True if making the change from the Flipset will actually 'flip' the prediction for the classifier
-        """
-
-        if info['feasible']:
-
-            a = info['actions']
-            all_idx = np.arange(len(a))
-            static_idx = np.flatnonzero(np.isclose(a, 0.0, rtol = 1e-4))
-            action_idx = np.setdiff1d(all_idx, static_idx)
-            n_items = len(action_idx)
-            assert n_items >= 1
-            assert self.min_items <= n_items <= self.max_items
-
-            try:
-                assert np.all(np.isin(action_idx, self.actionable_indices))
-            except AssertionError:
-                warnings.warn('action set no in self.actionable_indices')
-
-            x = self.x
-            try:
-                assert np.not_equal(self.prediction(x), self.prediction(x + a))
-            except AssertionError:
-                s = self.score(x + a)
-                assert not np.isclose(self.score(x + a), 0.0, atol = 1e-4)
-                warnings.warn('numerical issue: near-zero score(x + a) = %1.8f' % s)
-
-            try:
-                # check costs change -> action
-                assert np.all(np.greater(info['costs'][action_idx], 0.0))
-                assert np.all(np.isclose(info['costs'][static_idx], 0.0))
-
-                # check total cost
-                if self.mip_cost_type == 'max':
-                    if not np.isclose(info['cost'], np.max(info['costs']), rtol = 1e-4):
-                        warnings.warn('numerical issue: max_cost is %1.2f but maximum of cost[j] is %1.2f' % (
-                            info['cost'], np.max(info['costs'])))
-                elif self.mip_cost_type == 'total':
-                    assert np.isclose(info['cost'], np.sum(info['costs']))
-
-            except AssertionError:
-                warnings.warn('issue detected with %s' % str(info))
-        return True
 
 
     #### Flipset methods (solver specific)
@@ -917,13 +866,14 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return
 
 
-
+#### CPLEX
 
 
 class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def __init__(self, action_set, x = None, **kwargs):
+
         self.built = False
 
         #setup the optimizer here:
@@ -941,13 +891,12 @@ class _RecourseBuilderPyomo(RecourseBuilder):
     def create_mip_model(self):
         """Build the model <b>object</b>."""
 
-        model = AbstractModel()
-        model.J = Set()
-        model.K = Set(model.J)
-
         def jk_init(m):
             return [(j, k) for j in m.J for k in m.K[j]]
 
+        model = AbstractModel()
+        model.J = Set()
+        model.K = Set(model.J)
         model.JK = Set(initialize = jk_init, dimen = None)
         model.y_pred = Param()
         model.epsilon = Param()
@@ -980,12 +929,13 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         ## set up objective function.
         if self.mip_cost_type == "max":
             model.g = Objective(rule=obj_rule_max, sense=minimize)
-            model.c3 = Constraint(model.JK, rule=maxcost_rule)
+            model.c3 = Constraint(model.JK, rule = maxcost_rule)
         else:
             model.g = Objective(rule=obj_rule_percentile, sense=minimize)
+
         ##
         model.c1 = Constraint(model.J, rule=c1Rule)
-        model.c2 = Constraint(rule=c2Rule)
+        model.c2 = Constraint(rule = c2Rule)
         return model
 
 
@@ -1031,6 +981,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
         self._mip = self.model.create_instance(data)
 
+
     def _check_mip_build_info(self, build_info):
         ## TODO
         return True
@@ -1057,6 +1008,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
     def solve_mip(self):
         self._results = self._optimizer.solve(self._mip)
 
+
     @property
     def solution_info(self):
         """
@@ -1072,9 +1024,9 @@ class _RecourseBuilderPyomo(RecourseBuilder):
             raise ValueError('solver status is not OK')
 
         if results.solver.TerminationCondition.infeasible:
-            return self.infeasible_info
+            return self._mip_solution_info
 
-        info = self.infeasible_info
+        info = self._mip_solution_info
         assert results.solver.termination_condition == TerminationCondition.optimal
 
         mip = self._mip
