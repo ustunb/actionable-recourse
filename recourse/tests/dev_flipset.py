@@ -30,8 +30,8 @@ i = denied_idx[0]
 
 # generate flipset for person i
 flipset = Flipset(x = X.values[i], action_set = action_set, clf = clf)
-flipset
 flipset.populate(total_items = 5, display_flag = False)
-flipset
 flipset.to_latex()
 flipset.view()
+print(flipset)
+flipset

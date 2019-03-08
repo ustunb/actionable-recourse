@@ -43,3 +43,15 @@ def _check_solver_cbc():
 
 
 DEFAULT_SOLVER = set_default_solver()
+
+
+### Cost Types ###
+
+VALID_MIP_COST_TYPES = {'total', 'local', 'max'}
+DEFAULT_AUDIT_COST_TYPE = 'max'
+DEFAULT_FLIPSET_COST_TYPE = 'local'
+
+### Enumeration Types ###
+
+VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
+DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'

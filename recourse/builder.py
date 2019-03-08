@@ -4,33 +4,28 @@ import numpy as np
 import pandas as pd
 from itertools import chain
 from collections import defaultdict
-from recourse.defaults import DEFAULT_SOLVER, SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+from recourse.defaults import *
+from recourse.defaults import _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 
+# todo the next imports to defaults so that we remove solver from SUPPORTED_SOLVERS if they don't exist
 try:
-    from cplex import Cplex, SparsePair
-    from recourse.cplex_helper import set_cpx_parameters, set_cpx_display_options, set_cpx_time_limit, set_cpx_node_limit, toggle_cpx_preprocessing, DEFAULT_CPLEX_PARAMETERS
+    from recourse.cplex_helper import Cplex, SparsePair, set_cpx_parameters, set_cpx_display_options, set_cpx_time_limit, set_cpx_node_limit, toggle_cpx_preprocessing, DEFAULT_CPLEX_PARAMETERS
 except ImportError:
     pass
 
 try:
-    from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
     from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
+    from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
 except ImportError:
     pass
 
-# defaults
-DEFAULT_AUDIT_COST_TYPE = 'max'
-DEFAULT_FLIPSET_COST_TYPE = 'local'
-VALID_MIP_COST_TYPES = {'total', 'local', 'max'}
-VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
-DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'
 
 class RecourseBuilder(object):
 
-    _default_print_flag = True
     _default_check_flag = True
+    _default_print_flag = True
     _default_node_limit = float('inf')
     _default_time_limit = float('inf')
     _default_mip_cost_type = DEFAULT_AUDIT_COST_TYPE
@@ -104,6 +99,20 @@ class RecourseBuilder(object):
             assert 0 <= self._min_items <= self._max_items <= self.n_variables
         return True
 
+    @property
+    def print_flag(self):
+        return self._print_flag
+
+
+    @print_flag.setter
+    def print_flag(self, flag):
+        if flag is None:
+            self._print_flag = bool(self._default_print_flag)
+        elif isinstance(flag, bool):
+            self._print_flag = bool(flag)
+        else:
+            raise AttributeError('print_flag must be boolean or None')
+
 
     @property
     def check_flag(self):
@@ -118,22 +127,6 @@ class RecourseBuilder(object):
             self._check_flag = bool(flag)
         else:
             raise AttributeError('check_flag must be boolean or None')
-
-
-    #### printing ####
-    @property
-    def print_flag(self):
-        return self._print_flag
-
-
-    @print_flag.setter
-    def print_flag(self, flag):
-        if flag is None:
-            self._print_flag = bool(self._default_print_flag)
-        elif isinstance(flag, bool):
-            self._print_flag = bool(flag)
-        else:
-            raise AttributeError('print_flag must be boolean or None')
 
 
     def __repr__(self):
@@ -211,6 +204,8 @@ class RecourseBuilder(object):
     #### MIP ####
     @property
     def mip(self):
+        if self._mip is None:
+            raise ValueError('mip has not yet been initialized')
         return self._mip
 
 
@@ -570,9 +565,6 @@ class RecourseBuilder(object):
 
 
 
-
-#### CPLEX
-
 class _RecourseBuilderCPX(RecourseBuilder):
 
 
@@ -869,7 +861,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return
 
 
-#### Pyomo
 
 class _RecourseBuilderPyomo(RecourseBuilder):
 
@@ -888,6 +879,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         self._set_mip_display = None #_set_mip_display(self, mip, node_limit)
 
         super().__init__(action_set = action_set, x = x, **kwargs)
+
 
     #### building MIP ####
     def create_mip_model(self):
@@ -1043,6 +1035,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
         return info
 
+
     #### Flipset methods (solver specific)
     def set_mip_min_items(self, n_items):
         """
@@ -1101,8 +1094,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         raise NotImplementedError()
 
 
-
-
+#
 BUILDER_TO_SOLVER = {
     _SOLVER_TYPE_CPX: _RecourseBuilderCPX,
     _SOLVER_TYPE_CBC: _RecourseBuilderPyomo,

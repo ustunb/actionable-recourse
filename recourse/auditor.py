@@ -7,7 +7,7 @@ from recourse.builder import RecourseBuilder
 
 class RecourseAuditor(object):
     """
-    Class to efficiently evaluate the feasibility and cost of recourse over a sample of points
+    Efficiently evaluate the feasibility and cost of recourse over a sample of points
     """
 
     def __init__(self, action_set, **kwargs):
@@ -38,8 +38,8 @@ class RecourseAuditor(object):
                                        action_set = self.action_set,
                                        solver = self.solver)
 
-
         # todo: consider setting attributes through builder
+
 
     def audit(self, X, y_desired = 1):
         """
@@ -72,9 +72,7 @@ class RecourseAuditor(object):
             audit_idx = np.less(scores, self.intercept)
         else:
             audit_idx = np.greater_equal(scores, self.intercept)
-
         audit_idx = np.flatnonzero(audit_idx)
-
 
         # solve recourse problem
         output = []
