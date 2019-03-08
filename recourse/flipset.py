@@ -4,14 +4,14 @@ pd.set_option('display.max_columns', 10)
 
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder
+from recourse.builder import RecourseBuilder, VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES
 
 class Flipset(object):
     """
     List of actions that will flip the predicted value of a classifier from x
     """
-    valid_enumeration_types = RecourseBuilder._valid_enumeration_types
-    valid_cost_types = RecourseBuilder._valid_mip_cost_types
+    _valid_enumeration_types = VALID_ENUMERATION_TYPES
+    _valid_cost_types = VALID_MIP_COST_TYPES,
 
     df_column_names = ['cost',
                        'size',
@@ -47,7 +47,6 @@ class Flipset(object):
         self._sort_args = {'by': ['size', 'cost', 'score_new'], 'inplace': True, 'axis': 0}
 
 
-    ### built-ins ###
     def __len__(self):
         """
         :return: # of items in the flipset
@@ -153,6 +152,12 @@ class Flipset(object):
 
         :return:
         """
+        assert enumeration_type in Flipset.valid_enumeration_types, \
+            'enumeration_type must be one of %r' % self.valid_enumeration_types
+
+        assert cost_type in Flipset.cost_type, \
+            'cost_type must be one of %r' % Flipset._valid_cost_types
+
         if self._builder is None:
             self._builder = RecourseBuilder(action_set = self.action_set, x = self.x, coefficients = self._coefs, intercept = self._intercept, mip_cost_type = cost_type)
 
