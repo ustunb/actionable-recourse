@@ -42,7 +42,3 @@ def test_percentile_bound():
     assert np.isclose(b.lb, np.percentile(values, l))
     assert np.isclose(b.ub, np.percentile(values, u))
     assert b.bound_type == 'percentile'
-
-
-
-# bounds
