@@ -32,6 +32,7 @@ class RecourseBuilder(object):
     _valid_enumeration_types = {'mutually_exclusive', 'distinct_subsets'}
 
 
+    #### built-ins ####
     def __new__(cls, **kwargs):
 
         """Factory Method."""
@@ -84,12 +85,6 @@ class RecourseBuilder(object):
             self.x = x
 
         assert self._check_rep()
-
-
-    #### built-ins ####
-
-    def __len__(self):
-        raise len(self.action_set)
 
 
     #### internal representation ####
@@ -246,6 +241,7 @@ class RecourseBuilder(object):
             self.build_mip()
 
 
+    #### MIP item limits ####
     @property
     def min_items(self):
         return int(self._min_items)
@@ -276,6 +272,36 @@ class RecourseBuilder(object):
             self._max_items = min(k, self.n_actionable)
 
 
+    def set_mip_item_limits(self, min_items = None, max_items = None):
+        """
+        changes limits for the number of items
+        :param min_items:
+        :param max_items:
+        :return:
+        """
+
+        if min_items is None or max_items is None:
+            return
+
+        min_items = self.min_items if min_items is None else int(min_items)
+        max_items = self.max_items if min_items is None else int(max_items)
+        assert min_items <= max_items, 'incompatible sizes'
+
+        min_items = int(min_items)
+        if min_items != self.min_items:
+            min_nnz_actions = float(self.n_actionable - min_items)
+            self.set_mip_min_items(min_nnz_actions)
+            self.min_items = min_items
+
+        if max_items != self.max_items:
+            max_nnz_actions = float(self.n_actionable - max_items)
+            self.set_mip_max_items(min_nnz_actions)
+            self.max_items = max_items
+
+        return
+
+
+    #### MIP stamping ####
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
 
         #
@@ -348,6 +374,64 @@ class RecourseBuilder(object):
         return build_info, indices
 
 
+    def _check_mip_build_info(self, build_info):
+
+        for v in build_info.values():
+
+            assert not np.isclose(v['coef'], 0.0)
+            a = np.array(v['actions'])
+            c = np.array(v['costs'])
+            assert c[0] == 0.0
+            assert a[0] == 0.0
+
+            if np.sign(v['coef']) > 0:
+                assert np.all(np.greater(a[1:], 0.0))
+            else:
+                assert np.all(np.less(a[1:], 0.0))
+
+            assert len(a) >= 2
+            assert len(a) == len(c)
+            assert len(a) == len(np.unique(a))
+            assert len(c) == len(np.unique(c))
+
+        return True
+
+    ### mip manipulation ###
+
+    def set_mip_time_limit(self, time_limit):
+        """
+        Sets time limit for MIP
+        :param time_limit:
+        :return:
+        """
+        if time_limit is not None:
+            assert isinstance(time_limit, (int, float)) and time_limit > 0
+            self._set_mip_time_limit(self.mip, time_limit)
+
+
+    def set_mip_node_limit(self, node_limit):
+        """
+        Sets node limit for MIP
+        :param node_limit: # of nodes that can be processed before MIP
+        :return:
+        """
+        if node_limit is not None:
+            assert isinstance(node_limit, (int, float)) and node_limit > 0
+            self._set_mip_node_limit(self.mip, node_limit)
+
+
+    def set_mip_display(self, display_flag):
+        """
+        sets display flag for mip
+        :param display_flag:
+        :return:
+        """
+        if display_flag is not None:
+            assert isinstance(display_flag, bool)
+            self._set_mip_display(self.mip, display_flag)
+
+
+    ##### mip solutions ####
     @property
     def infeasible_info(self):
 
@@ -368,6 +452,7 @@ class RecourseBuilder(object):
             'nodes_remaining': 0,
             'runtime': 0,
             }
+
         return info
 
 
@@ -416,9 +501,28 @@ class RecourseBuilder(object):
 
         return True
 
+    #### main auditing and enumeration functions ####
+    def fit(self, time_limit = None, node_limit = None, display_flag = False):
 
-    #### basic fitting functions ###
-    def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', time_limit = None, node_limit = None):
+        if self._mip is None:
+            return self.infeasible_info
+
+        # update time limit and node limit
+        self.set_mip_display(display_flag)
+        self.set_mip_time_limit(time_limit)
+        self.set_mip_node_limit(node_limit)
+
+        # solve
+        start_time = time.process_time()
+        self.solve_mip()
+        end_time = time.process_time() - start_time
+
+        info = self.solution_info
+        info['runtime'] = end_time
+        return info
+
+
+    def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', time_limit = None, node_limit = None, display_flag = False):
 
         assert isinstance(total_items, int) and total_items >= 1
         assert enumeration_type in self._valid_enumeration_types
@@ -429,13 +533,17 @@ class RecourseBuilder(object):
         else:
             remove_solution = self.remove_feature_combination
 
+        # update time limit and node limit
+        self.set_mip_display(display_flag)
+        self.set_mip_time_limit(time_limit)
+        self.set_mip_node_limit(node_limit)
+
         # enumerate soluitions
         k = 0
         all_info = []
         populate_start_time = time.process_time()
         while k < total_items:
-            # solve mip
-            info = self.fit(time_limit = time_limit, node_limit = node_limit)
+            info = self.solve_mip()
             if not info['feasible']:
                 if self.print_flag:
                     print('recovered all minimum-cost items')
@@ -448,7 +556,6 @@ class RecourseBuilder(object):
             print('obtained %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
 
         return all_info
-
 
 
 
@@ -469,65 +576,15 @@ class _RecourseBuilderCPX(RecourseBuilder):
         """
         # initialize Cplex MIP
         self._cpx_parameters = kwargs.get('cplex_parameters', self._default_cplex_parameters)
+        self._set_mip_time_limit = set_cpx_time_limit
+        self._set_mip_node_limit = set_cpx_node_limit
+        self._set_mip_display = lambda mip, flag: set_cpx_display_options(mip, display_lp = flag, display_mip = flag, display_parameters = flag)
 
         ## initialize base class
         super().__init__(action_set = action_set, x = x, **kwargs)
 
 
-    def set_mip_item_limits(self, min_items = None, max_items = None):
-        """
-        changes limits for the number of items
-        :param min_items:
-        :param max_items:
-        :return:
-        """
-
-        if min_items is None or max_items is None:
-            return
-
-        min_items = self.min_items if min_items is None else int(min_items)
-        max_items = self.max_items if min_items is None else int(max_items)
-        assert min_items <= max_items, 'incompatible sizes'
-
-        min_items = int(min_items)
-        if min_items != self.min_items:
-            min_nnz_actions = float(self.n_actionable - min_items)
-            self._mip.linear_constraints.set_rhs("min_items", min_nnz_actions)
-            self.min_items = min_items
-
-        if max_items != self.max_items:
-            max_nnz_actions = float(self.n_actionable - max_items)
-            self._mip.linear_constraints.set_rhs("max_items", max_nnz_actions)
-            self.max_items = max_items
-
-        return
-
-
-
-    def _check_mip_build_info(self, build_info):
-
-        for v in build_info.values():
-
-            assert not np.isclose(v['coef'], 0.0)
-            a = np.array(v['actions'])
-            c = np.array(v['costs'])
-            assert c[0] == 0.0
-            assert a[0] == 0.0
-
-            if np.sign(v['coef']) > 0:
-                assert np.all(np.greater(a[1:], 0.0))
-            else:
-                assert np.all(np.less(a[1:], 0.0))
-
-            assert len(a) >= 2
-            assert len(a) == len(c)
-            assert len(a) == len(np.unique(a))
-            assert len(c) == len(np.unique(c))
-
-        return True
-
-
-
+    #### building MIP ####
     def build_mip(self):
         """
         returns an optimization problem that can be solved to determine an item in a flipset for x
@@ -670,10 +727,32 @@ class _RecourseBuilderCPX(RecourseBuilder):
             objval_pairs = list(chain(*[list(zip(v['action_ind_names'], v['costs'])) for v in build_info.values()]))
             mip.objective.set_linear(objval_pairs)
 
-        mip = self.set_mip_parameters(mip)
+        mip = set_cpx_parameters(mip, self._cpx_parameters)
         self._mip = mip
-        self.mip_indices = indices
+        self._mip_indices = indices
 
+
+    @property
+    def mip_indices(self):
+        return self._mip_indices
+
+
+    #### MIP settings ###
+    def set_mip_parameters(self, param = None):
+        """
+        updates MIP parameters
+        :param param:
+        :return:
+        """
+        if param is None:
+            param = self._cpx_parameters
+
+        self._mip = set_cpx_parameters(self._mip, param)
+
+
+    ##### solving MIP ####
+    def solve_mip(self):
+        self.mip.solve()
 
 
     @property
@@ -697,7 +776,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 ind_idx = np.flatnonzero(np.array(sol.get_values(indices['action_ind_names'])))
                 ind_names = [indices['action_ind_names'][int(k)] for k in ind_idx]
                 cost_values = mip.objective.get_linear(ind_names)
-
 
             actions = np.zeros(self.n_variables)
             np.put(actions, variable_idx, action_values)
@@ -785,62 +863,30 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return True
 
 
-    #### general mip stuff ####
-
-    @property
-    def mip_indices(self):
-        return self._mip_indices
-
-
-    @mip_indices.setter
-    def mip_indices(self, indices):
-        assert isinstance(indices, dict)
-        self._mip_indices = indices
+    #### Flipset methods (solver specific)
+    def set_mip_min_items(self, n_items):
+        """
+        sets maximum number of non-zero elements in MIP (used by set_item_limits)
+        :param n_items:
+        :return:
+        """
+        self._mip.linear_constraints.set_rhs("min_items", n_items)
 
 
-    def set_mip_parameters(self, cpx = None, param = None):
-
-        if cpx is None:
-            cpx = self._mip
-
-        if param is None:
-            param = self._cpx_parameters
-
-        cpx = set_cpx_parameters(cpx, param)
-        return cpx
-
-
-    def toggle_preprocessing(self, toggle = True):
-        self._mip = toggle_cpx_preprocessing(self._mip, toggle)
-
-
-    #### solving, enumeration, validation ####
-    def fit(self, time_limit = None, node_limit = None, display_flag = False):
-
-        if self._mip is None:
-            return self.infeasible_info
-
-        mip = self.mip
-        mip = set_cpx_display_options(mip, display_mip = False, display_lp = display_flag, display_parameters = display_flag)
-
-        # update time limit
-        if time_limit is not None:
-            mip = set_cpx_time_limit(mip, time_limit)
-
-        if node_limit is not None:
-            mip = set_cpx_node_limit(mip, node_limit)
-
-        # solve
-        start_time = mip.get_time()
-        mip.solve()
-        end_time = mip.get_time() - start_time
-
-        info = self.solution_info
-        info['runtime'] = end_time
-        return info
+    def set_mip_max_items(self, n_items):
+        """
+        sets maximum number of non-zero elements in MIP (used by set_item_limits)
+        :param n_items:
+        :return:
+        """
+        self._mip.linear_constraints.set_rhs("max_items", n_items)
 
 
     def remove_all_features(self):
+        """
+        removes feature combination from feasible region of MIP
+        :return:
+        """
         mip = self.mip
         names = self.mip_indices['action_off_names']
         values = np.array(mip.solution.get_values(names))
@@ -850,6 +896,10 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
 
     def remove_feature_combination(self):
+        """
+        removes feature combination from feasible region of MIP
+        :return:
+        """
 
         mip = self.mip
         u_names = self.mip_indices['action_off_names']
@@ -868,69 +918,48 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
 
 
+
+
 class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def __init__(self, action_set, x = None, **kwargs):
         self.built = False
+
+        #todo: Alex fill out these functions
+        self._set_mip_time_limit = None #_set_mip_time_limit(self, mip, time_limit)
+        self._set_mip_node_limit = None #_set_mip_node_limit(self, mip, node_limit)
+        self._set_mip_display = None #_set_mip_display(self, mip, node_limit)
+
         super().__init__(action_set = action_set, x = x, **kwargs)
 
-
-    def _check_mip_build_info(self, build_info):
-        ## TODO
-        return True
-
-
-    def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
-        build_info, indices = super()._get_mip_build_info(
-                cost_function_type=cost_function_type, validate=validate)
-
-        ## pyomo-specific processing
-        c = []
-        a = []
-        for name in self.action_set._names:
-            c.append(build_info.get(name, {'costs': []})['costs'])
-            a.append(build_info.get(name, {'actions': []})['actions'])
-
-        output_build_info = {}
-        output_build_info['a'] = a
-        output_build_info['c'] = c
-        output_build_info['epsilon'] = min(indices['cost_df']) / sum(indices['cost_ub'])
-
-        return output_build_info, indices
-
-
-    def build_mip(self):
+    #### building MIP ####
+    def create_mip_model(self):
         """Build the model <b>object</b>."""
-        self.model = AbstractModel()
 
-        self.model.J = Set()
-        self.model.K = Set(self.model.J)
+        model = AbstractModel()
+        model.J = Set()
+        model.K = Set(model.J)
 
         def jk_init(m):
             return [(j, k) for j in m.J for k in m.K[j]]
 
-        self.model.JK = Set(initialize=jk_init, dimen=None)
-
-        self.model.y_pred = Param()
-        self.model.epsilon = Param()
-        self.model.max_cost = Var()
-        self.model.w = Param(self.model.J)
-        self.model.a = Param(self.model.JK)
-        self.model.c = Param(self.model.JK)
-        self.model.u = Var(self.model.JK, within=Binary)
+        model.JK = Set(initialize=jk_init, dimen=None)
+        model.y_pred = Param()
+        model.epsilon = Param()
+        model.max_cost = Var()
+        model.w = Param(model.J)
+        model.a = Param(model.JK)
+        model.c = Param(model.JK)
+        model.u = Var(model.JK, within=Binary)
 
         # Make sure only one action is on at a time.
         def c1Rule(m, j):
-            return (
-                       sum([m.u[j, k] for k in m.K[j]])
-                   ) == 1
+            return sum([m.u[j, k] for k in m.K[j]]) == 1
 
         # 2.b: Action sets must flip the prediction of a linear classifier.
         def c2Rule(m):
-            return (
-                    sum((m.u[j, k] * m.a[j, k] * m.w[j]) for j, k in m.JK) >= -m.y_pred
-            )
+            return sum((m.u[j, k] * m.a[j, k] * m.w[j]) for j, k in m.JK) >= -m.y_pred
 
         # instantiate max cost
         def maxcost_rule(m, j, k):
@@ -942,27 +971,23 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
         # Set up objective for max cost.
         def obj_rule_max(m):
-            return (
-                    sum(m.epsilon * m.u[j, k] * m.c[j, k] for j, k in m.JK) + (1 - m.epsilon) * m.max_cost
-            )
+            return sum(m.epsilon * m.u[j, k] * m.c[j, k] for j, k in m.JK) + (1 - m.epsilon) * m.max_cost
 
         ## set up objective function.
         if self.mip_cost_type == "max":
-            self.model.g = Objective(rule=obj_rule_max, sense=minimize)
-            self.model.c3 = Constraint(self.model.JK, rule=maxcost_rule)
+            model.g = Objective(rule=obj_rule_max, sense=minimize)
+            model.c3 = Constraint(model.JK, rule=maxcost_rule)
         else:
-            self.model.g = Objective(rule=obj_rule_percentile, sense=minimize)
+            model.g = Objective(rule=obj_rule_percentile, sense=minimize)
         ##
-        self.model.c1 = Constraint(self.model.J, rule=c1Rule)
-        self.model.c2 = Constraint(rule=c2Rule)
-        self.built = True
+        model.c1 = Constraint(model.J, rule=c1Rule)
+        model.c2 = Constraint(rule=c2Rule)
+        self.model = model
 
 
-    def instantiate_mip(self):
+    def build_mip(self):
+        self.create_mip_model()
         build_info, indices = self._get_mip_build_info()
-        if not self.built:
-            self.build_mip()
-
         a = build_info['a']
         a_tuples = {}
         for i in range(len(a)):
@@ -996,45 +1021,109 @@ class _RecourseBuilderPyomo(RecourseBuilder):
             'max_cost': {None: -1000}
             }}
 
-        instance = self.model.create_instance(data)
-        return instance
+        self._mip = self.model.create_instance(data)
+
+    def _check_mip_build_info(self, build_info):
+        ## TODO
+        return True
 
 
-    def fit(self, time_limit=None, node_limit=None, diplay_flag=False):
+    def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
+        build_info, indices = super()._get_mip_build_info(cost_function_type=cost_function_type, validate=validate)
+
+        ## pyomo-specific processing
+        c = []
+        a = []
+        for name in self.action_set._names:
+            c.append(build_info.get(name, {'costs': []})['costs'])
+            a.append(build_info.get(name, {'actions': []})['actions'])
+
+        output_build_info = {}
+        output_build_info['a'] = a
+        output_build_info['c'] = c
+        output_build_info['epsilon'] = min(indices['cost_df']) / sum(indices['cost_ub'])
+        return output_build_info, indices
+
+
+    ##### solving MIP ####
+
+    def solve_mip(self):
+        opt = SolverFactory('cbc')
+        opt.solve(self._mip)
+
+    @property
+    def solution_info(self):
+        mip = self._mip
+        info = self.infeasible_info
+
+        # todo alex check if feasible
+        info['cost'] = mip.max_cost()
+        sol = {}
+        for i in mip.JK:
+            sol[i] = {'a': mip.a[i], 'u': mip.u[i](), 'c': mip.c[i]}
+
+        sol_df = (pd.DataFrame.from_dict(sol, orient = "index").loc[lambda df: df['u'] == 1])
+        info['actions'] = sol_df['a'].values
+        info['costs'] = sol_df['c'].values
+        return info
+
+    #### Flipset methods (solver specific)
+    def set_mip_min_items(self, n_items):
         """
-        TODO: implement time_limit and node_limit for Pyomo to match CPLEX.
-
-        :param time_limit:
-        :param node_limit:
-        :param diplay_flag:
+        sets maximum number of non-zero elements in MIP (used by set_item_limits)
+        :param n_items:
         :return:
         """
-        instance = self.instantiate_mip()
-        opt = SolverFactory('cbc')
-        start = time.time()
-        opt.solve(instance)
-        end = time.time() - start
+        #todo alex
+        raise NotImplementedError()
 
-        ## add check
-        output = {}
-        for i in instance.JK:
-            output[i] = {
-                'a': instance.a[i],
-                'u': instance.u[i](),
-                'c': instance.c[i]
-                }
 
-        output_df = (pd.DataFrame
-            .from_dict(output, orient="index")
-            .loc[lambda df: df['u']==1]
-            )
+    def set_mip_max_items(self, n_items):
+        """
+        sets maximum number of non-zero elements in MIP (used by set_item_limits)
+        :param n_items:
+        :return:
+        """
+        # todo alex
+        raise NotImplementedError()
 
-        final_output = {}
-        final_output['cost'] = instance.max_cost()
-        final_output['actions'] = output_df['a'].values
-        final_output['costs'] = output_df['c'].values
-        final_output['runtime'] = end
-        return output
+
+    def remove_all_features(self):
+        """
+        removes feature combination from feasible region of MIP
+        :return:
+        """
+        #mip = self.mip
+        #names = self.mip_indices['action_off_names']
+        #values = np.array(mip.solution.get_values(names))
+        #on_idx = np.flatnonzero(np.isclose(values, 0.0))
+        #mip.variables.set_lower_bounds([(names[j], 1.0) for j in on_idx])
+        # todo alex
+        raise NotImplementedError()
+
+
+    def remove_feature_combination(self):
+        """
+        removes feature combination from feasible region of MIP
+        :return:
+        """
+
+        # mip = self.mip
+        # u_names = self.mip_indices['action_off_names']
+        # u = np.array(mip.solution.get_values(u_names))
+        # on_idx = np.isclose(u, 0.0)
+        #
+        # n = len(u_names)
+        # con_vals = np.ones(n, dtype = np.float_)
+        # con_vals[on_idx] = -1.0
+        # con_rhs = n - 1 - np.sum(on_idx)
+        #
+        # mip.linear_constraints.add(lin_expr = [SparsePair(ind = u_names, val = con_vals.tolist())],
+        #                            senses = ["L"],
+        #                            rhs = [float(con_rhs)])
+        # todo alex
+        raise NotImplementedError()
+
 
 
 
