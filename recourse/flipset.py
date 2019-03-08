@@ -11,7 +11,7 @@ class Flipset(object):
     List of actions that will flip the predicted value of a classifier from x
     """
     _valid_enumeration_types = VALID_ENUMERATION_TYPES
-    _valid_cost_types = VALID_MIP_COST_TYPES,
+    _valid_cost_types = VALID_MIP_COST_TYPES
 
     df_column_names = ['cost',
                        'size',
@@ -152,11 +152,11 @@ class Flipset(object):
 
         :return:
         """
-        assert enumeration_type in Flipset.valid_enumeration_types, \
-            'enumeration_type must be one of %r' % self.valid_enumeration_types
+        assert enumeration_type in self._valid_enumeration_types, \
+            'enumeration_type must be one of %r' % self._valid_enumeration_types
 
-        assert cost_type in Flipset.cost_type, \
-            'cost_type must be one of %r' % Flipset._valid_cost_types
+        assert cost_type in self._valid_cost_types, \
+            'cost_type must be one of %r' % self._valid_cost_types
 
         if self._builder is None:
             self._builder = RecourseBuilder(action_set = self.action_set, x = self.x, coefficients = self._coefs, intercept = self._intercept, mip_cost_type = cost_type)

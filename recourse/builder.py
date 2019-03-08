@@ -20,12 +20,12 @@ try:
 except ImportError:
     pass
 
+# defaults
+DEFAULT_AUDIT_COST_TYPE = 'max'
+DEFAULT_FLIPSET_COST_TYPE = 'local'
 VALID_MIP_COST_TYPES = {'total', 'local', 'max'}
 VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
-DEFAULT_MIP_COST_TYPE = 'local'
 DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'
-
-
 
 class RecourseBuilder(object):
 
@@ -33,16 +33,16 @@ class RecourseBuilder(object):
     _default_check_flag = True
     _default_node_limit = float('inf')
     _default_time_limit = float('inf')
-    _default_mip_cost_type = 'max'
-    _default_enumeration_type = 'distinct_subsets'
-    _valid_mip_cost_types = set(VALID_MIP_COST_TYPES)
-    _valid_enumeration_types = set(VALID_ENUMERATION_TYPES)
+    _default_mip_cost_type = DEFAULT_AUDIT_COST_TYPE
+    _default_enumeration_type = DEFAULT_ENUMERATION_TYPE
+    _valid_mip_cost_types = VALID_MIP_COST_TYPES
+    _valid_enumeration_types = VALID_ENUMERATION_TYPES
 
     def __new__(cls, **kwargs):
 
         """Factory Method."""
         solver = kwargs.get("solver", DEFAULT_SOLVER)
-        if not solver in SUPPORTED_SOLVERS:
+        if solver not in SUPPORTED_SOLVERS:
             raise ValueError("pick solver in: %r" % SUPPORTED_SOLVERS)
         return super().__new__(BUILDER_TO_SOLVER[solver])
 
@@ -189,6 +189,7 @@ class RecourseBuilder(object):
     @property
     def coefficients(self):
         return self._coefficients
+
 
     @property
     def intercept(self):
@@ -735,10 +736,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
         self._mip = mip
         self._mip_indices = indices
 
-    @property
-    def mip_indices(self):
-        return self._mip_indices
-
 
     #### MIP settings ###
     def set_mip_parameters(self, param = None):
@@ -753,7 +750,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         self._mip = set_cpx_parameters(self._mip, param)
 
 
-    ##### solving MIP ####
+    #### solving MIP ###
     def solve_mip(self):
         self.mip.solve()
 
@@ -818,7 +815,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return info
 
 
-    #### Flipset methods (solver specific)
+    #### flipset geneation ###
     def set_mip_min_items(self, n_items):
         """
         sets maximum number of non-zero elements in MIP (used by set_item_limits)
@@ -842,8 +839,8 @@ class _RecourseBuilderCPX(RecourseBuilder):
         removes feature combination from feasible region of MIP
         :return:
         """
-        mip = self.mip
-        names = self.mip_indices['action_off_names']
+        mip = self._mip
+        names = self._mip_indices['action_off_names']
         values = np.array(mip.solution.get_values(names))
         on_idx = np.flatnonzero(np.isclose(values, 0.0))
         mip.variables.set_lower_bounds([(names[j], 1.0) for j in on_idx])
@@ -856,8 +853,8 @@ class _RecourseBuilderCPX(RecourseBuilder):
         :return:
         """
 
-        mip = self.mip
-        u_names = self.mip_indices['action_off_names']
+        mip = self._mip
+        u_names = self._mip_indices['action_off_names']
         u = np.array(mip.solution.get_values(u_names))
         on_idx = np.isclose(u, 0.0)
 
@@ -872,8 +869,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
         return
 
 
-#### CPLEX
-
+#### Pyomo
 
 class _RecourseBuilderPyomo(RecourseBuilder):
 
