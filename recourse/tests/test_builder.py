@@ -17,3 +17,17 @@ def test_rb_fit_without_initialization(data, recourse_builder):
         assert False
 
 
+def test_rb_fit(data, recourse_builder, features):
+    print(len(features))
+    print(recourse_builder.n_variables)
+    recourse_builder.x = features
+    output = recourse_builder.fit()
+    output['cost'] >= 0.0
+
+
+
+
+
+
+
+

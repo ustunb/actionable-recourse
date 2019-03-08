@@ -1,4 +1,3 @@
-
 import numpy as np
 import pytest
 from recourse.paths import *
@@ -59,6 +58,18 @@ def action_set(request, data):
         action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 
     return action_set
+
+
+@pytest.fixture(params = ['neg'])
+def features(request, data, classifier):
+    yhat = classifier.predict(data['X'])
+    if request.param == 'pos':
+        idx = np.greater(yhat, 0)
+    elif request.param == 'neg':
+        idx = np.less_equal(yhat, 0)
+    i = np.flatnonzero(idx)[0]
+    x = np.array(data['X'].values[i, :])
+    return x
 
 
 @pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
