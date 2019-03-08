@@ -20,6 +20,12 @@ try:
 except ImportError:
     pass
 
+VALID_MIP_COST_TYPES = {'total', 'local', 'max'}
+VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
+DEFAULT_MIP_COST_TYPE = 'local'
+DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'
+
+
 
 class RecourseBuilder(object):
 
@@ -29,8 +35,8 @@ class RecourseBuilder(object):
     _default_time_limit = float('inf')
     _default_mip_cost_type = 'max'
     _default_enumeration_type = 'distinct_subsets'
-    _valid_mip_cost_types = {'total', 'local', 'max'}
-    _valid_enumeration_types = {'mutually_exclusive', 'distinct_subsets'}
+    _valid_mip_cost_types = set(VALID_MIP_COST_TYPES)
+    _valid_enumeration_types = set(VALID_ENUMERATION_TYPES)
 
     def __new__(cls, **kwargs):
 
