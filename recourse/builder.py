@@ -16,7 +16,7 @@ except ImportError:
 
 try:
     from pyomo.core import Objective, Constraint, Var, Param, Set, AbstractModel, Binary, minimize
-    from pyomo.opt import SolverFactory
+    from pyomo.opt import SolverFactory, SolverStatus, TerminationCondition
 except ImportError:
     pass
 
@@ -926,6 +926,10 @@ class _RecourseBuilderPyomo(RecourseBuilder):
     def __init__(self, action_set, x = None, **kwargs):
         self.built = False
 
+        #setup the optimizer here:
+        self._optimizer = SolverFactory['cbc']
+        self._results = None
+
         #todo: Alex fill out these functions
         self._set_mip_time_limit = None #_set_mip_time_limit(self, mip, time_limit)
         self._set_mip_node_limit = None #_set_mip_node_limit(self, mip, node_limit)
@@ -944,7 +948,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         def jk_init(m):
             return [(j, k) for j in m.J for k in m.K[j]]
 
-        model.JK = Set(initialize=jk_init, dimen=None)
+        model.JK = Set(initialize = jk_init, dimen = None)
         model.y_pred = Param()
         model.epsilon = Param()
         model.max_cost = Var()
@@ -982,20 +986,24 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         ##
         model.c1 = Constraint(model.J, rule=c1Rule)
         model.c2 = Constraint(rule=c2Rule)
-        self.model = model
+        return model
 
 
     def build_mip(self):
-        self.create_mip_model()
+
+        self.model = self.create_mip_model()
         build_info, indices = self._get_mip_build_info()
+
+        # custom changes to build info
         a = build_info['a']
+        c = build_info['c']
+
         a_tuples = {}
         for i in range(len(a)):
             a_tuples[(i, 0)] = 0
             for j in range(len(a[i])):
                 a_tuples[(i, j)] = a[i][j]
 
-        c = build_info['c']
         c_tuples = {}
         for i in range(len(c)):
             c_tuples[(i, 0)] = 0
@@ -1029,11 +1037,10 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
 
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
-        build_info, indices = super()._get_mip_build_info(cost_function_type=cost_function_type, validate=validate)
+        build_info, indices = super()._get_mip_build_info(cost_function_type = cost_function_type, validate = validate)
 
         ## pyomo-specific processing
-        c = []
-        a = []
+        c, a = [], []
         for name in self.action_set._names:
             c.append(build_info.get(name, {'costs': []})['costs'])
             a.append(build_info.get(name, {'actions': []})['actions'])
@@ -1048,23 +1055,38 @@ class _RecourseBuilderPyomo(RecourseBuilder):
     ##### solving MIP ####
 
     def solve_mip(self):
-        opt = SolverFactory('cbc')
-        opt.solve(self._mip)
+        self._results = self._optimizer.solve(self._mip)
 
     @property
     def solution_info(self):
-        mip = self._mip
+        """
+        fills out solution info
+        :return:
+        """
+        results = self._results
+
+        if results is None:
+            raise ValueError('cannot access solution information before solving MIP')
+
+        if results.solver.status != SolverStatus.ok:
+            raise ValueError('solver status is not OK')
+
+        if results.solver.TerminationCondition.infeasible:
+            return self.infeasible_info
+
         info = self.infeasible_info
+        assert results.solver.termination_condition == TerminationCondition.optimal
 
-        # todo alex check if feasible
-        info['cost'] = mip.max_cost()
-        sol = {}
-        for i in mip.JK:
-            sol[i] = {'a': mip.a[i], 'u': mip.u[i](), 'c': mip.c[i]}
+        mip = self._mip
+        sol = {j: {'a': mip.a[j], 'u': mip.u[j](), 'c': mip.c[j]} for j in mip.JK}
+        df = (pd.DataFrame.from_dict(sol, orient = "index").loc[lambda df: df['u'] == 1])
 
-        sol_df = (pd.DataFrame.from_dict(sol, orient = "index").loc[lambda df: df['u'] == 1])
-        info['actions'] = sol_df['a'].values
-        info['costs'] = sol_df['c'].values
+        info.update({
+            'actions': df['a'].values,
+            'costs': df['c'].values,
+            'cost': mip.max_cost(),
+            })
+
         return info
 
     #### Flipset methods (solver specific)
