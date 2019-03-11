@@ -7,8 +7,8 @@ from recourse.builder import RecourseBuilder
 
 class RecourseAuditor(object):
     """
-    Efficiently evaluate the feasibility and cost of recourse over a sample of points that were denied access.
-    (i.e. this method will not be run on datapoints that are already qualifying, (eg. y_pred > 0).
+    Compute feasibility and cost of recourse over a sample of points that were denied access.
+    (i.e. this method will not be run on data points that are already qualifying, (eg. y_pred > 0).
     """
 
     def __init__(self, action_set, **kwargs):
@@ -38,8 +38,6 @@ class RecourseAuditor(object):
                                        intercept = self.intercept,
                                        action_set = self.action_set,
                                        solver = self.solver)
-
-        # todo: consider setting attributes through builder
 
 
     def audit(self, X, y_desired = 1):

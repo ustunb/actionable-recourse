@@ -959,6 +959,7 @@ class _RecourseBuilderPyomo(RecourseBuilder):
 
         return self.model
 
+
     def _cpx_idx_set_to_pyomo(self, idx_name):
         """Dumb helper function. TODO make _get_mip_build_info build directly from the action_set."""
         return tuple(map(int, re.findall('\d+', idx_name)))

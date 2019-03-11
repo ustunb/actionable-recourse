@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
@@ -203,8 +202,6 @@ class _ActionElement(object):
             assert len(g) == len(np.unique(g)), 'grid is not unique'
             assert np.all(np.isfinite(g)), 'grid contains elements that are nan or inf'
             assert np.all(g[:-1] <= g[1:]), 'grid is not sorted'
-            #assert np.all(np.greater_equal(G, self.lb)) todo: we should pass this
-            #assert np.all(np.less_equal(G, self.ub))
         return True
 
 
