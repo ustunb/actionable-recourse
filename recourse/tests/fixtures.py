@@ -140,3 +140,13 @@ def auditor_cpx(classifier, action_set):
 @pytest.fixture
 def auditor_cbc(classifier, action_set):
     return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
+
+
+@pytest.fixture
+def flipset_cpx(classifier, action_set, denied_individual):
+    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CPX)
+
+
+@pytest.fixture
+def flipset_cbc(classifier, action_set, denied_individual):
+    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)

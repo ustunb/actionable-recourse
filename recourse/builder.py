@@ -1067,8 +1067,14 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         else:
             cost = df['c'].sum()
 
+        a = df['a'].values
+        if np.isclose(a, 0).all():
+            feasible = False
+        else:
+            feasible = True
+
         info.update({
-            'feasible': True,
+            'feasible': feasible,
             'status': 'optimal',
             'actions': df['a'].values,
             'costs': df['c'].values,

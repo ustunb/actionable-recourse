@@ -4,7 +4,7 @@ pd.set_option('display.max_columns', 10)
 
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder
+from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
 from recourse.defaults import VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES
 
 class Flipset(object):
@@ -26,13 +26,14 @@ class Flipset(object):
                        'flipped']
 
 
-    def __init__(self, x, action_set, **kwargs):
+    def __init__(self, x, action_set, solver=_SOLVER_TYPE_CPX, **kwargs):
 
         # attach action set
         assert isinstance(action_set, ActionSet)
         self.action_set = action_set
         self._n_variables = len(action_set)
         self._variable_names = action_set.name
+        self._solver = solver
 
         # attach feature vector
         assert isinstance(x, (list, np.ndarray))
@@ -42,7 +43,7 @@ class Flipset(object):
         self._coefs, self._intercept = parse_classifier_args(**kwargs)
 
         # initialize Flipset attributes
-        self._builder = None
+        self._builder = kwargs.get('builder')
         self._items = []
         self._df = pd.DataFrame(columns = Flipset.df_column_names, dtype = object)
         self._sort_args = {'by': ['size', 'cost', 'score_new'], 'inplace': True, 'axis': 0}
@@ -160,11 +161,11 @@ class Flipset(object):
             'cost_type must be one of %r' % self._valid_cost_types
 
         if self._builder is None:
-            self._builder = RecourseBuilder(action_set = self.action_set, x = self.x, coefficients = self._coefs, intercept = self._intercept, mip_cost_type = cost_type)
+            self._builder = RecourseBuilder(action_set = self.action_set, x = self.x, coefficients = self._coefs, intercept = self._intercept, mip_cost_type = cost_type, solver=self._solver)
 
         items = self._builder.populate(total_items = total_items, enumeration_type = enumeration_type, time_limit = time_limit, node_limit = node_limit, display_flag = display_flag)
         self._add(items)
-
+        return self
 
     def sort(self, **kwargs):
         """
