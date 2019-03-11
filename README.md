@@ -2,18 +2,23 @@
 
 ## Overview
 
-*Recourse* is the ability to change the decision of a predictive model through *actionable* input variables (e.g., income vs. age or marital status). 
+*Recourse* is the ability to change the decision of a predictive model by altering *actionable* input variables (e.g., income vs. age). 
 
-This package includes tools to:
+This package includes tools to evaluate recourse in linear classification models.
 
-1. List changes that a person can make to obtain a desired outcome from a given model
-2. Measure the feasibility and difficulty of recourse over a population of interest
+### Package Highlights
+
+- Generate a list of actionable changes for a person to obtain a specific outcome from a linear model
+
+- Measure the feasibility and difficulty of recourse for model over a population of interest
+
+- Scikit-learn compatability
 
 
 
 ## Installation
 
-Please install from source as the package is still in development.
+You can install from source by running:
 
 ```
 $ git clone git@github.com:ustunb/actionable-recourse.git
@@ -43,7 +48,7 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-## Development Roadmap
+## Dev Roadmap
 
 - Support for categorical variables in `ActionSet`
 - Support for Boolean models such as decision lists and rule lists
