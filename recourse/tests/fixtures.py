@@ -14,7 +14,7 @@ def data(request):
 
     data_name = request.param
     df = pd.read_csv(test_dir / ('%s_processed.csv' % data_name))
-    df_headers = df.columns.to_list()
+    df_headers = df.columns.tolist()
 
     outcome_name = df_headers[0]
     df_headers.remove(outcome_name)
@@ -43,6 +43,23 @@ def classifier(request, data):
         clf.fit(data['X'], data['Y'])
 
     return clf
+
+
+@pytest.fixture
+def scores(classifier, data):
+    return pd.Series(classifier.predict_proba(data['X'])[:, 1])
+
+
+@pytest.fixture(params=[1, 5, 8])
+def denied_individual(request, scores, data, threshold):
+    denied_individuals = scores.loc[lambda s: s <= threshold].index
+    idx = denied_individuals[request.param]
+    return data['X'].iloc[idx].values
+
+
+@pytest.fixture(params=[.5])
+def threshold(request, scores):
+    return scores.quantile(request.param) ## or you can set a score-threshold, like .8
 
 
 @pytest.fixture(params = ['mutable', 'immutable'])
@@ -82,14 +99,17 @@ def recourse_builder(request, classifier, action_set):
     return rb
 
 
-@pytest.fixture(params = ['_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC'])
+@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
 def auditor(request, classifier, action_set):
     return RecourseAuditor(clf = classifier, action_set = action_set, solver= request.param)
 
 
-@pytest.fixture(params = ['_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC'])
-def flipset(request, classifier, action_set):
-    return Flipset(clf = classifier, action_set = action_set, solver= request.param)
+@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+def flipset(request, classifier, action_set, denied_individual):
+    print("request param")
+    print(request.param)
+
+    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= request.param)
 
 
 @pytest.fixture
@@ -110,3 +130,13 @@ def recourse_builder_cbc(classifier, action_set):
                          clf = classifier)
 
     return rb
+
+
+@pytest.fixture
+def auditor_cpx(classifier, action_set):
+    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CPX)
+
+
+@pytest.fixture
+def auditor_cbc(classifier, action_set):
+    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
