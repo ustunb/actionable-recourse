@@ -1,48 +1,40 @@
-`recourse` is a python library to evaluate recourse in classification models. 
+`actionable-recourse` is a python library to evaluate recourse in linear classification models. 
 
-Letur tools let users to:
+## Overview
 
-1. Measure the feasibility and difficulty of recourse in a target population
-2. Generate a list of actionable changes for an individual to obtain a desired outcome
+*Recourse* is the ability to change the decision of a predictive model through *actionable* input variables (e.g., income vs. age or marital status). 
 
-## Background
+This package includes tools to:
 
-*Recourse* is the ability to change the decision of a machine learning model by manipulating *actionable* input variables (e.g., income vs. age, ethnicity, marital status). 
+1. List changes that a person can make to obtain a desired outcome from a given model
+2. Measure the feasibility and difficulty of recourse over a population of interest
 
-Classification models are often used to make decisions that affect humans: whether to approve a loan application, extend a job offer, or provide insurance. In such applications, individuals should have the ability to change the decision of the model. When a person is denied a loan by a credit scoring model, for example, they should be able to change its input variables in order to be approval. Otherwise, they will be denied the loan so long as the model is deployed, and lack agency over a decision that affects their livelihood. 
 
-#### Paper
-
-[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
-     
-```
-@article{ustun2018actionable,
-  title={Actionable Recourse in Linear Classification},
-  author={Ustun, Berk and Spangher, Alexander and Liu, Yang},
-  journal={arXiv preprint arXiv:1809.06514},
-  year={2018}
-}
-```
 
 ## Installation
 
-Please install from source, as this project is still in development and updating:
+Please install from source as the package is still in development.
 
 ```
 $ git clone git@github.com:ustunb/actionable-recourse.git
 $ python setup.py
 ```
 
-### Requirements
+#### Requirements:
 
-- Python 3.5+ 
+- Python 3.5+
 - CPLEX 12.6+
+- CBC 
  
-The code may still work with older versions of Python and CPLEX, but this will not be tested or supported. If you're hesitant about switching to Python 3, check out this [migration guide](https://github.com/arogozhnikov/python3_with_pleasure)  
+#### CBC + Pyomo
+
+* Download COIN-OR and CBC from: https://www.coin-or.org/
+* Install Pyomo using `pip` or `conda` and then run the Pyomo installer in the command line: `pyomo install-extras`
+* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
 
 #### CPLEX 
 
-CPLEX is cross-platform commercial optimization tool with a Python API. It is freely available to students and faculty members at accredited institutions. To get CPLEX:
+CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty members at accredited institutions. To get CPLEX:
 
 1. Register for [IBM OnTheHub](https://ibm.onthehub.com/WebStore/Account/VerifyEmailDomain.aspx)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
@@ -51,22 +43,33 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### Pyomo and CBC
-
-* Run the Pyomo installer in the command line: pyomo install-extras 
-* Or, if you're on windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
-* Download COIN-OR from: https://www.coin-or.org/download/binary/OptimizationSuite/
-* Make sure to update your `$PATH` variable to point to the correct location:
-* For example: `export PATH=PATH:/usr/local/bin/Cbc-2.8.5`
-(* The windows installer should do this for you.)
-
 ## Development Roadmap
 
-**NOTE: THIS PACKAGE IS CURRENTLY UNDER ACTIVE DEVELOPMENT. THE CODE MAY CHANGE WITH EACH COMMIT.** 
-
-- Support for open-source MIP solver (either [CBC](https://projects.coin-or.org/Cbc) or [MIPCL](http://www.mipcl-cpp.appspot.com/))
 - Support for categorical variables in `ActionSet`
-- Refactoring for future development 
-- Support for Boolean models such as decision lists, rule lists etc.
-- Comparatabilty with [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator)
+- Support for Boolean models such as decision lists and rule lists
+- [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+
+## Reference
+
+For more about recourse or how to use these tools, check out our paper:
+
+[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
+     
+```
+inproceedings{ustun2019recourse,
+     title = {Actionable Recourse in Linear Classification},
+     author = {Ustun, Berk and Spangher, Alexander and Liu, Yang},
+     booktitle = {Proceedings of the Conference on Fairness, Accountability, and Transparency},
+     series = {FAT* '19},
+     year = {2019},
+     isbn = {978-1-4503-6125-5},
+     location = {Atlanta, GA, USA},
+     pages = {10--19},
+     numpages = {10},
+     url = {http://doi.acm.org/10.1145/3287560.3287566},
+     doi = {10.1145/3287560.3287566},
+     publisher = {ACM},
+     keywords = {accountability, audit, classification, credit scoring, integer programming, recourse},
+}
+```
