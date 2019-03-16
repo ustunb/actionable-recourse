@@ -108,7 +108,6 @@ def auditor(request, classifier, action_set):
 def flipset(request, classifier, action_set, denied_individual):
     print("request param")
     print(request.param)
-
     return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= request.param)
 
 

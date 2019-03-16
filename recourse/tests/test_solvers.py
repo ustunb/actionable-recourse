@@ -1,14 +1,14 @@
-from recourse.auditor import RecourseAuditor
-import pytest
 from recourse.tests.fixtures import *
-from recourse.tests.test_classes import *
-from recourse.builder import _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
 
 n = 50
-@pytest.mark.parametrize('auditor', [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC], indirect=True)
-def test_auditor(auditor, data, scores, threshold):
-    """Test if the CPLEX auditor runs."""
-    df = auditor.audit(X=data['X'].iloc[:n])
+#todo choose points randomly
+
+def test_compare_flipsets(flipset_cpx, flipset_cbc):
+    cpx_items = flipset_cbc.populate(total_items=5).items
+    cbc_items = flipset_cbc.populate(total_items=5).items
+
+    assert len(cpx_items) == len(cbc_items)
+    assert np.isclose([x['cost'] for x in cpx_items], [x['cost'] for x in cbc_items]).all()
 
 
 def test_compare_auditors(auditor_cpx, auditor_cbc, data):
