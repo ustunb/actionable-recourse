@@ -11,7 +11,7 @@ ci_scripts/
 skltemplate/
 
 # other
-paper/results/
+examples/paper/results
 
 # jekyll
 *.yml
@@ -23,7 +23,6 @@ paper/results/
 
 # odyssey
 *.command
-
 
 # directories
 local/
