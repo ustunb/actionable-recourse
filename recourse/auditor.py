@@ -5,11 +5,16 @@ from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 
+# todo add timer / print
+
 class RecourseAuditor(object):
     """
     Compute feasibility and cost of recourse over a sample of points that were denied access.
     (i.e. this method will not be run on data points that are already qualifying, (eg. y_pred > 0).
     """
+
+    _default_print_flag = True
+
 
     def __init__(self, action_set, **kwargs):
         """
@@ -38,6 +43,23 @@ class RecourseAuditor(object):
                                        intercept = self.intercept,
                                        action_set = self.action_set,
                                        solver = self.solver)
+
+        self._print_flag = kwargs.get('print_flag', self._default_print_flag)
+
+
+    @property
+    def print_flag(self):
+        return self._print_flag
+
+
+    @print_flag.setter
+    def print_flag(self, flag):
+        if flag is None:
+            self._print_flag = bool(self._default_print_flag)
+        elif isinstance(flag, bool):
+            self._print_flag = bool(flag)
+        else:
+            raise AttributeError('print_flag must be boolean or None')
 
 
     def audit(self, X, y_desired = 1):
