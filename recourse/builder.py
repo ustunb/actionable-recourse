@@ -24,7 +24,8 @@ try:
 except ImportError:
     pass
 
-
+# todo fix bug when all points are non-zero but non-action (demo_credit_script shouldn't run)
+# todo add support for y_desired = -1
 class RecourseBuilder(object):
 
     _default_check_flag = True

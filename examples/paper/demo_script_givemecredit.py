@@ -1,3 +1,4 @@
+from examples.paper.initialize import *
 import itertools
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -6,7 +7,7 @@ from sklearn.linear_model import LogisticRegressionCV
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
-from paper.experimental_setup import *
+
 
 data_name = 'givemecredit'
 data_file = data_dir / '%s/%s_training.csv' % (data_name, data_name)

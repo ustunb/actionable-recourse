@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-pd.set_option('display.max_columns', 10)
-
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
-from recourse.defaults import VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES
+from recourse.builder import RecourseBuilder
+from recourse.defaults import VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES, DEFAULT_SOLVER
+
+pd.set_option('display.max_columns', 10)
 
 class Flipset(object):
     """
@@ -26,7 +26,7 @@ class Flipset(object):
                        'flipped']
 
 
-    def __init__(self, x, action_set, solver=_SOLVER_TYPE_CPX, **kwargs):
+    def __init__(self, x, action_set, solver = DEFAULT_SOLVER, **kwargs):
 
         # attach action set
         assert isinstance(action_set, ActionSet)
@@ -166,6 +166,7 @@ class Flipset(object):
         items = self._builder.populate(total_items = total_items, enumeration_type = enumeration_type, time_limit = time_limit, node_limit = node_limit, display_flag = display_flag)
         self._add(items)
         return self
+
 
     def sort(self, **kwargs):
         """

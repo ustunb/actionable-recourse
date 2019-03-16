@@ -45,6 +45,7 @@ temp_results
 temp_results/*
 
 # Distribution / packaging
+.pytest_cache
 .Python
 env/
 venv/

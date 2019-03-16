@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
-import seaborn.apionly as sns
+from examples.paper.initialize import *
 from sklearn.linear_model import LogisticRegressionCV, LogisticRegression
 from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.metrics import roc_auc_score
-from paper.experimental_setup import *
+
+
 
 data_name = 'german'
 data_file = data_dir / '%s_processed.csv' % data_name
