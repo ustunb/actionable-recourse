@@ -1,5 +1,4 @@
-from examples.paper.experimental_setup import *
-from examples.paper.plotting import *
+from examples.paper.initialize import *
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler
 from copy import copy
@@ -56,10 +55,13 @@ if settings['data_name'] == 'credit':
     immutable_names = ['Female', 'Single', 'Married'] + list(filter(lambda x : 'Age' in x or 'Overdue' in x, data['variable_names']))
     data['immutable_variable_names'] = [n for n in immutable_names if n in data['variable_names']]
 
+data['X_train'] = data['X']
 if settings['normalize_data']:
-    data['scaler'] = StandardScaler(copy = True, with_mean = True, with_std = True)
-    data['X_train'] = pd.DataFrame(data['scaler'].fit_transform(data['X'], data['y']), columns = data['X'].columns)
-    data['X_train'] = data['X']
+    scaler = StandardScaler(copy = True, with_mean = True, with_std = True)
+    data['X_scaled'] = pd.DataFrame(scaler.fit_transform(data['X'].to_numpy(dtype = float), data['y'].values), columns = data['X'].columns)
+    data['X_train'] = data['X_scaled']
+    data['scaler'] = scaler
+
 
 ##### Train Models ####
 

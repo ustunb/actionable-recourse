@@ -1,9 +1,4 @@
-from examples.paper.experimental_setup import *
-from examples.paper.plotting import *
-from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder
-from recourse.flipset import Flipset
-import pickle
+from examples.paper.initialize import *
 
 # user settings
 settings = {
@@ -44,9 +39,8 @@ settings['model_file'] = '%s_models.pkl' % settings['file_header']
 settings['audit_file'] = '%s_audit_results.pkl' % settings['audit_file_header']
 pp.pprint(settings)
 
-#### Initialize Dataset ####
+# data set
 data_df = pd.read_csv(settings['dataset_file'])
-
 data = {
     'outcome_name': data_df.columns[0],
     'variable_names': data_df.columns[1:].tolist(),
@@ -55,17 +49,20 @@ data = {
     }
 
 scaler = None
+data['X_train'] = data['X']
+data['scaler'] = None
 if settings['normalize_data']:
     from sklearn.preprocessing import StandardScaler
     scaler = StandardScaler(copy = True, with_mean = True, with_std = True)
-    data['X_scaled'] = pd.DataFrame(scaler.fit_transform(data['X'], data['y']), columns = data['X'].columns)
+    data['X_scaled'] = pd.DataFrame(scaler.fit_transform(data['X'].to_numpy(dtype = float), data['y'].values), columns = data['X'].columns)
+    data['X_train'] = data['X_scaled']
+    data['scaler'] = scaler
 
-#### Initialize Actionset ####
 
+# action set
 default_bounds = (1.0, 99.0, 'percentile')
 custom_bounds = None
 immutable_variables = []
-
 if settings['data_name'] == 'credit':
 
     immutable_names = ['Female', 'Single', 'Married']
@@ -78,52 +75,57 @@ if settings['data_name'] == 'credit':
     action_set[data['immutable_variable_names']].mutable = False
 
     action_set['EducationLevel'].step_direction = 1
-
     payment_fields = list(filter(lambda x: 'Amount' in x, data['variable_names']))
     action_set[payment_fields].step_type = 'absolute'
-    action_set[payment_fields].step_size = 5
+    action_set[payment_fields].step_size = 50
 
     for p in payment_fields:
         action_set[p].update_grid()
 
-
-#### Initialize Model Files ####
+# model
 model_stats = pickle.load(open(settings['model_file'], 'rb'))
-model_stats['all_models'].keys()
+all_models = model_stats.pop('all_models')
 
-audit = None
-settings['print_flag'] = False
-if settings['audit_recourse']:
+### Create Flipset
+clf = all_models['C_0.02__max_iter_1000__penalty_l1__solver_saga__tol_1e-08']
+yhat = clf.predict(X = data['X_train'])
+coefficients, intercept = undo_coefficient_scaling(clf, scaler = data['scaler'])
+action_set.align(coefficients)
+predicted_neg = np.flatnonzero(yhat < 1)
+U = data['X'].iloc[predicted_neg].values
+k = 4
+fb = Flipset(x = U[k], action_set = action_set, coefficients = coefficients, intercept = intercept)
+fb.populate(enumeration_type = 'distinct_subsets', total_items = 14)
+print(fb)
 
-    audit_results = {}
-    for key, model in model_stats['all_models'].items():
+#### Run Audit ####
+audit_results = {}
+for key, clf in all_models.items():
 
-        if settings['method_name'] == 'logreg':
-            model_name = 1. / float(key.split('_')[1])
-        else:
-            model_name = float(key.split('_')[1])
+    if settings['method_name'] == 'logreg':
+        model_name = 1. / float(key.split('_')[1])
+    else:
+        model_name = float(key.split('_')[1])
 
-        # run the audit_results.
-        model_results = get_flipset_solutions(model = model, data = data, action_set = action_set, scaler = scaler, print_flag = settings['print_flag'])
-        if len(model_results) > 0:
-            audit_results[model_name] = model_results
+    # unscale coefficients
+    if scaler is not None:
+        coefficients, intercept = undo_coefficient_scaling(coefficients = np.array(clf.coef_).flatten(), intercept = clf.intercept_[0], scaler = scaler)
+    else:
+        coefficients, intercept = np.array(clf.coef_).flatten(), clf.intercept_[0]
 
-    if settings['save_flag']:
-        pickle.dump(audit_results, file = open(settings['audit_file'], 'wb'), protocol=2)
+    auditor = RecourseAuditor(action_set, coefficients = coefficients, intercept = intercept)
+    audit_results[model_name] = auditor.audit(X = data['X'])
 
-else:
-    audit_results = pickle.load(file = open(settings['audit_file'], 'rb'))
+if settings['save_flag']:
+    pickle.dump(audit_results, file = open(settings['audit_file'], 'wb'), protocol=2)
 
-#### Audit Analysis ####
-
-if settings['method_name'] == 'logreg':
-    xlabel = '$\ell_1$-penalty (log scale)'
-else:
-    xlabel = '$C$-penalty (log scale)'
-
-
+#### Plots ####
 if settings['plot_audits']:
 
+    if settings['method_name'] == 'logreg':
+        xlabel = '$\ell_1$-penalty (log scale)'
+    else:
+        xlabel = '$C$-penalty (log scale)'
     # percent of points without recourse
     feasibility_df = {}
     obj_val = {}
@@ -185,25 +187,3 @@ if settings['plot_audits']:
     ax = fix_font_sizes(ax)
     f.savefig('%s_recourse_cost.pdf' % settings['audit_file_header'], bbox_inches = 'tight')
     plt.close()
-
-
-
-#### Flipset Generation
-clf = model_stats['all_models']['C_0.02__max_iter_1000__penalty_l1__solver_saga__tol_1e-08']
-yhat = clf.predict(X = data['X_train'])
-coefficients, intercept = undo_coefficient_scaling(clf, scaler = data['scaler'])
-action_set.align(coefficients)
-
-predicted_neg = np.flatnonzero(yhat < 1)
-U = data['X'].iloc[predicted_neg].values
-
-# produce flipset
-k = 4
-fb = RecourseBuilder(coefficients = coefficients, intercept = intercept, action_set = action_set, x = U[k], mip_cost_type = 'local')
-flipset = Flipset(x = fb.x, coefficients = coefficients, intercept = intercept, variable_names = data['variable_names'])
-
-#fb.max_items = 4
-items = fb.populate(enumeration_type = 'distinct_subsets', total_items = 14)
-flipset.add(items)
-print(flipset.to_latex()) #creates latex table for paper
-print(flipset.view()) # displays to screen
