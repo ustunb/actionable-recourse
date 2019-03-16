@@ -13,8 +13,20 @@ def is_sklearn_linear_classifier(obj):
 
 def parse_classifier_args(*args, **kwargs):
     """
-    :param args:
-    :param kwargs:
+    helper function to parse coefficients and intercept from linear classifier arguments
+
+    *args and **kwargs can contain either:
+        - sklearn classifiers with 'coef_' and 'intercept_' fields (keyword: 'clf', 'classifier')
+        - vector of coefficients (keyword: 'coefficients')
+        - intercept: set to 0 by default (keyword: 'intercept')
+
+    returns:
+        w - np.array containing coefficients of linear classifier (finite, flattened)
+        t - float containing intercept of linear classifier (finite, float)
+
+    raises:
+        ValueError if fails to parse classifier arguments
+
     :return:
     """
     w, t = None, None
@@ -52,6 +64,9 @@ def parse_classifier_args(*args, **kwargs):
 
         w = args[0]
         t = float(args[1])
+
+    else:
+        raise ValueError('failed to match classifier arguments')
 
     w = np.array(w).flatten()
     t = float(t)

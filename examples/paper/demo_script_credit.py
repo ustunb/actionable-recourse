@@ -1,5 +1,5 @@
-from paper.experimental_setup import *
-from paper.plotting import *
+from examples.paper.experimental_setup import *
+from examples.paper.plotting import *
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 from recourse.flipset import Flipset

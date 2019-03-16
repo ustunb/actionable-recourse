@@ -1,6 +1,7 @@
-from paper.experimental_setup import *
-from paper.plotting import *
+from examples.paper.experimental_setup import *
+from examples.paper.plotting import *
 from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import StandardScaler
 from copy import copy
 
 # user settings
@@ -12,38 +13,36 @@ settings = {
     'cv_type': 'stratified',
     #
     # script flags
-    'train_classifiers': True,
-    'normalize_data': True,
-    'print_flag': True,
-    'save_flag': True,
     'random_seed': 2338,
+    'normalize_data': True,
     #
-    # data-related plots
-    'plot_data_summary': False,
-    'plot_model_error_path': True,
-    'plot_model_size_path': True,
-    'plot_model_coef_path': True,
-    #
-    # placeholders
+    # file names
+    'overwrite_files': False,
     'method_suffixes': [''],
     }
 
-# file names
-output_dir = results_dir / settings['data_name']
-output_dir.mkdir(exist_ok = True)
-
+# set dependent keys
+settings['dataset_file'] = '%s/%s_processed.csv' % (data_dir, settings['data_name'])
 if settings['normalize_data']:
     settings['method_suffixes'].append('normalized')
 
-# set file names
-settings['dataset_file'] = '%s/%s_processed.csv' % (data_dir, settings['data_name'])
-settings['file_header'] = '%s/%s_%s%s' % (output_dir, settings['data_name'], settings['method_name'], '_'.join(settings['method_suffixes']))
-settings['model_file'] = '%s_models.pkl' % settings['file_header']
+# set output file
+output_dir = results_dir / settings['data_name']
+output_dir.mkdir(exist_ok = True)
+file_header = '%s/%s_%s%s' % (output_dir, settings['data_name'], settings['method_name'], '_'.join(settings['method_suffixes']))
+file_names = {
+    'model': '%s_models.pkl' % file_header,
+    'data_summary': '%s_data_summary.pdf' % file_header,
+    'coef_table': '%s_coefficient_df.csv' % file_header,
+    'model_size': '%s_model_size_path.pdf' % file_header,
+    'coef_path': '%s_model_coefficient_path.pdf' % file_header,
+    'error_path': '%s_model_error_path.pdf' % file_header,
+    }
 
-#### Initialize Dataset ####
+save_to_disk = lambda f: settings['overwrite_files'] or not Path(f).exists()
 
+# load dataset
 data_df = pd.read_csv(settings['dataset_file'])
-
 data = {
     'outcome_name': data_df.columns[0],
     'variable_names': data_df.columns[1:].tolist(),
@@ -54,21 +53,13 @@ data = {
     }
 
 if settings['data_name'] == 'credit':
-
     immutable_names = ['Female', 'Single', 'Married'] + list(filter(lambda x : 'Age' in x or 'Overdue' in x, data['variable_names']))
     data['immutable_variable_names'] = [n for n in immutable_names if n in data['variable_names']]
 
-
 if settings['normalize_data']:
-    from sklearn.preprocessing import StandardScaler
     data['scaler'] = StandardScaler(copy = True, with_mean = True, with_std = True)
     data['X_train'] = pd.DataFrame(data['scaler'].fit_transform(data['X'], data['y']), columns = data['X'].columns)
-else:
     data['X_train'] = data['X']
-
-if settings['plot_data_summary']:
-    f, _ = create_data_summary_plot(data_df)
-    f.savefig('%s_data_summary.pdf' % settings['file_header'])
 
 ##### Train Models ####
 
@@ -83,12 +74,15 @@ if settings['train_classifiers']:
         from sklearn.linear_model import LogisticRegression as Classifier
         param_grid = {'penalty': ['l1'],
                       'C': [1.0 / l for l in [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]],
-                      # 'verbose': [True],
-                      'solver': ['saga'], 'tol': [1e-8], 'max_iter': [1000]}
+                      'solver': ['saga'],
+                      'tol': [1e-8],
+                      'max_iter': [1000]}
 
     elif settings['method_name'] == 'svm':
         from sklearn.svm import LinearSVC as Classifier
-        param_grid = {'C': [1.0 / l for l in [0.01, 0.1, 1, 10, 100]], 'dual': [False], 'tol': [1e-8]}
+        param_grid = {'C': [1.0 / l for l in [0.01, 0.1, 1, 10, 100]],
+                      'dual': [False],
+                      'tol': [1e-8]}
     else:
         raise NameError('method %s not supported' % settings['method_name'])
 
@@ -107,8 +101,6 @@ if settings['train_classifiers']:
                               return_train_score = True,
                               cv = cv_generator,
                               scoring = 'neg_mean_squared_error')
-
-    #todo add AUC to models
 
     gridsearch.fit(data['X_train'], data['y'])
     grid_search_df = pd.DataFrame(gridsearch.cv_results_)
@@ -136,32 +128,29 @@ if settings['train_classifiers']:
         'coef_df': get_coefficient_df(final_models, variable_names = data['variable_names'], scaler = data['scaler']),
         }
 
-    if settings['save_flag']:
-        pickle.dump(model_stats, file = open(settings['model_file'], 'wb'), protocol=2)
-
-else:
-
-    model_stats = pickle.load(open(settings['model_file'], 'rb'))
-
+    pickle.dump(model_stats, file = open(file_names['model'], 'wb'), protocol=2)
 
 #### Model Analysis ####
+if model_stats is None:
+    model_stats = pickle.load(open(file_names['model']), 'rb')
 
-assert model_stats is not None
 coef_df = model_stats['coef_df']
 raw_coef_df = model_stats['raw_coef_df']
 
-if settings['method_name'] == 'logreg':
-    coef_df = coef_df.rename(columns={col: 1. / float(col.split('_')[1]) for col in coef_df.columns})
-    raw_coef_df = raw_coef_df.rename(columns={col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
-    xlabel = '$\ell_1$-penalty'
-else:
-    coef_df = coef_df.rename(columns={col: float(col.split('_')[1]) for col in coef_df.columns})
-    raw_coef_df = raw_coef_df.rename(columns = {col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
-    xlabel = '$C$-penalty'
+if save_to_disk(file_names['coef_table']):
 
-coef_df.to_csv('%s_coefficient_df.csv' % settings['file_header'], float_format = '%1.6f')
+    if settings['method_name'] == 'logreg':
+        coef_df = coef_df.rename(columns = {col: 1. / float(col.split('_')[1]) for col in coef_df.columns})
+        raw_coef_df = raw_coef_df.rename(columns = {col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
+        xlabel = '$\ell_1$-penalty'
+    else:
+        coef_df = coef_df.rename(columns = {col: float(col.split('_')[1]) for col in coef_df.columns})
+        raw_coef_df = raw_coef_df.rename(columns = {col: 1. / float(col.split('_')[1]) for col in raw_coef_df.columns})
+        xlabel = '$C$-penalty'
 
-if settings['plot_model_size_path']:
+    coef_df.to_csv(file_names['coef_table'], float_format = '%1.6f')
+
+if save_to_disk(file_names['model_size']):
 
     f, ax = create_figure()
 
@@ -181,11 +170,10 @@ if settings['plot_model_size_path']:
     ax.set_yticks(ticks = np.arange(0, max_nnz + 2, 2).tolist())
     ax.legend(frameon = True, prop = {'size': 20})
     ax = fix_font_sizes(ax)
-    f.savefig('%s_model_size_path.pdf' % settings['file_header'], bbox_inches='tight')
+    f.savefig(file_names['model_size'], bbox_inches='tight')
     plt.close()
 
-
-if settings['plot_model_error_path']:
+if save_to_disk(file_names['error_path']):
 
     train_error = model_stats['model_stats_df'].groupby('param 0: C')['train_score'].aggregate(['mean', 'var'])
     test_error = model_stats['model_stats_df'].groupby('param 0: C')['test_score'].aggregate(['mean', 'var'])
@@ -201,13 +189,13 @@ if settings['plot_model_error_path']:
     ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, decimals = 1))
     ax.set_ylim((0.19, 0.20))
     ax = fix_font_sizes(ax)
-    f.savefig('%s_model_error_path.pdf' % settings['file_header'], bbox_inches='tight')
+    f.savefig(file_names['error_path'], bbox_inches='tight')
     plt.close()
 
 
-if settings['plot_model_coef_path']:
+if save_to_disk(file_names['coef_path']):
     f, ax = create_coefficient_path_plot(coefs_df = coef_df, fig_size = (20, 20), label_coefs = True, fontsize = 12)
     ax = fix_font_sizes(ax)
-    f.savefig('%s_model_coefficient_path.pdf' % settings['file_header'])
+    f.savefig(file_names['coef_path'], bbox_inches = 'tight')
     plt.close()
 
