@@ -32,6 +32,19 @@ def test_rb_fit(data, recourse_builder, features):
     print(recourse_builder.n_variables)
     recourse_builder.x = features
     output = recourse_builder.fit()
-    output['cost'] >= 0.0
+    assert output['cost'] >= 0.0
 
 
+def test_empty_fit(data, features, action_set, coefficients, classifier, recourse_builder):
+    names = data['X'].columns.tolist()
+    action_set.align(classifier)
+    direction = np.sign(coefficients)
+    ## force everything to be the opposite direction.
+    for n, d in zip(names, direction):
+        action_set[n].step_direction = -1 * d
+    recourse_builder._action_set = action_set
+
+    recourse_builder.x = features
+    output = recourse_builder.fit()
+    assert output['cost'] == np.inf
+    assert output['feasible'] == False

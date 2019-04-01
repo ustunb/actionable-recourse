@@ -44,6 +44,12 @@ def classifier(request, data):
 
     return clf
 
+@pytest.fixture(params = ['logreg'])
+def coefficients(request, classifier):
+    if request.param == 'logreg':
+        coef = classifier.coef_[0]
+    return coef
+
 
 @pytest.fixture
 def scores(classifier, data):

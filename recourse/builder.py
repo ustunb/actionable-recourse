@@ -82,6 +82,8 @@ class RecourseBuilder(object):
         self._min_items = 0
         self._max_items = self.n_actionable
 
+        self._apriori_infeasible = False ## useful if we want to hardcode conditions where
+                                         ## we won't run the MIP, like empty actionsets.
         # attach features
         self._x = None
         if x is not None:
@@ -505,7 +507,9 @@ class RecourseBuilder(object):
         :param display_flag:
         :return:
         """
-
+        if self._apriori_infeasible:
+            return self._empty_mip_solution_info
+        
         assert self._mip is not None, 'must first initialize recourse IP'
 
         # update time limit and node limit
@@ -904,6 +908,8 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         ## todo: not sure what to put for this. let's talk about what the cplex display flag does.
         self._set_mip_display = lambda mip, display_flag: True #_set_mip_display(self, mip, display)
 
+        self._apriori_infeasible = False
+
         super().__init__(action_set = action_set, x = x, **kwargs)
 
 
@@ -979,7 +985,6 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         output_build_info = {}
         output_build_info['a'] = a
         output_build_info['c'] = c
-        output_build_info['epsilon'] = min(indices['cost_df']) / sum(indices['cost_ub'])
 
         # custom changes to build info
         a = output_build_info['a']
@@ -1003,7 +1008,11 @@ class _RecourseBuilderPyomo(RecourseBuilder):
             for j in range(len(c[i])):
                 u_tuples[(i, j)] = False
 
-        epsilon = min(indices['cost_df']) / sum(indices['cost_ub'])
+        if len(indices['cost_df']) == 0:
+            self._apriori_infeasible = True
+            epsilon = float('inf')
+        else:
+            epsilon = min(indices['cost_df']) / sum(indices['cost_ub'])
         output_build_info = {None: {
             'J':  {None: list(range(len(a)))},
             'K': {i: list(range(len(a[i]) or 1)) for i in range(len(a)) },
@@ -1025,10 +1034,10 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         """Get an Abstract model and create a Concrete model with input data."""
         self.model = self.create_abstract_model()
         build_info, indices = self._get_mip_build_info()
-        self._mip_indices = indices
-        self._mip = self.model.create_instance(build_info)
-        self._mip.extra_c = ConstraintList()
-
+        if not self._apriori_infeasible:
+            self._mip_indices = indices
+            self._mip = self.model.create_instance(build_info)
+            self._mip.extra_c = ConstraintList()
 
     def _check_mip_build_info(self, build_info):
         ## TODO
@@ -1038,8 +1047,10 @@ class _RecourseBuilderPyomo(RecourseBuilder):
     ##### solving MIP ####
 
     def solve_mip(self):
-        self._results = self._optimizer.solve(self._mip)
-
+        if not self._apriori_infeasible:
+            self._results = self._optimizer.solve(self._mip)
+        else:
+            self._results = {'feasible': False, 'cost': np.inf}
 
     @property
     def solution_info(self):
@@ -1048,6 +1059,8 @@ class _RecourseBuilderPyomo(RecourseBuilder):
         :return:
         """
         results = self._results
+        if self._apriori_infeasible:
+            return self._empty_mip_solution_info
 
         if results is None:
             raise ValueError('cannot access solution information before solving MIP')
