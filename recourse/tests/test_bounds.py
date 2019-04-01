@@ -10,7 +10,7 @@ lb = np.percentile(v, 40)
 def test_absolute_bound():
     l = -1.0
     u = 10.0
-    b = BoundElement(bound_type = 'absolute', lb = l, ub = u)
+    b = BoundElement(bound_type = 'absolute', lb = l, ub = u, variable_type=int)
     assert b.lb == l
     assert b.ub == u
     assert b.bound_type == 'absolute'

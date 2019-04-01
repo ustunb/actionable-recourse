@@ -187,3 +187,48 @@ if settings['plot_audits']:
     ax = fix_font_sizes(ax)
     f.savefig('%s_recourse_cost.pdf' % settings['audit_file_header'], bbox_inches = 'tight')
     plt.close()
+
+
+
+## dev
+import os
+import pickle
+data, scaler = load_data()
+key = 'C_0.001000__max_iter_1000__penalty_l1__solver_saga__tol_1e-08'
+all_models = pickle.load(open(settings['model_file'], 'rb'))
+clf = all_models[key]
+
+scaler_pkl = os.path.join(os.path.dirname(settings['model_file']), 'scaler.pkl')
+scaler = pickle.load(open(scaler_pkl, 'rb'))
+immutable_names = ['Female', 'Single', 'Married']
+immutable_names += list(filter(lambda x: 'Age' in x or 'Overdue' in x, data['variable_names']))
+default_bounds = (0.1, 99.9, 'percentile')
+custom_bounds = {'Female': (0, 100, 'p'), 'Married': (0, 100, 'p')}
+data['immutable_variable_names'] = [n for n in immutable_names if n in data['variable_names']]
+
+action_set = ActionSet(X=data['X'], custom_bounds=custom_bounds, default_bounds=default_bounds)
+action_set[data['immutable_variable_names']].mutable = False
+
+action_set['EducationLevel'].step_direction = 1
+payment_fields = list(filter(lambda x: 'Amount' in x, data['variable_names']))
+action_set[payment_fields].step_type = 'absolute'
+action_set[payment_fields].step_size = 50
+
+for p in payment_fields:
+    action_set[p].update_grid()
+
+# unscale coefficients
+if scaler is not None:
+    coefficients, intercept = undo_coefficient_scaling(coefficients=np.array(clf.coef_).flatten(),
+                                                       intercept=clf.intercept_[0], scaler=scaler)
+else:
+    coefficients, intercept = np.array(clf.coef_).flatten(), clf.intercept_[0]
+
+## run audit
+print("Auditing for model %s..." % key)
+auditor = RecourseAuditor(
+    action_set,
+    coefficients=coefficients,
+    intercept=intercept
+)
+auditor.audit(X=data['X'])

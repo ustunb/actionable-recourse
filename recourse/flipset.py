@@ -207,13 +207,8 @@ class Flipset(object):
         return self._df
 
 
-    def to_latex(self, name_formatter = '\\textit'):
-        """
-        converts current Flipset to Latex table
-        :param name_formatter:
-        :return:
-        """
-
+    def to_flat_df(self):
+        """Flatten out the actionsets in the flipset to product either a latex or HTML representation."""
         self.sort()
         tex_columns = ['features', 'x', 'x_new']
         tex_df = self._df[tex_columns]
@@ -239,8 +234,16 @@ class Flipset(object):
         # index items by item_id
         flat_df = flat_df.sort_values(by = 'item_id')
         flat_df = flat_df.rename(columns = {'item_id': 'item'})
-        flat_df = flat_df.set_index('item')
+        return flat_df.set_index('item')
 
+
+    def to_latex(self, name_formatter = '\\textit'):
+        """
+        converts current Flipset to Latex table
+        :param name_formatter:
+        :return:
+        """
+        flat_df = self.to_flat_df()
 
         # add another column for the latex arrow symbol
         idx = flat_df.columns.tolist().index('x_new')
@@ -271,6 +274,30 @@ class Flipset(object):
         table.pop(3)
         return '\n'.join(table)
 
+    def to_html(self):
+        def _color_white_or_gray(row):
+            color = 'white' if row.name[0] % 2 == 0 else 'lightgray'
+            res = 'background-color: %s' % color
+            return [res] * len(row)
+
+        flat_df = self.to_flat_df()
+
+        # add another column for the latex arrow symbol
+        idx = flat_df.columns.tolist().index('x_new')
+        flat_df.insert(loc = idx, column = 'to', value = ['&#8594;'] * len(flat_df))
+
+        idx = (pd.DataFrame(flat_df.index)
+               .assign(row=lambda df: df.groupby('item').cumcount().pipe(lambda s: s + 1))
+               .pipe(lambda df: list(zip(df['item'], df['row'])))
+               )
+        idx = pd.MultiIndex.from_tuples(idx)
+        flat_df.index = idx
+        html = (flat_df.style
+                .set_table_styles([{"selector": "tr", "props": [('background-color', 'white')]}])
+                .apply(_color_white_or_gray, axis=1)
+                .render()
+                )
+        return html
 
     #### item management ####
     def _add(self, items):

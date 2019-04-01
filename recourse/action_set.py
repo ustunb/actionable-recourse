@@ -17,7 +17,7 @@ class _BoundElement(object):
     object is kept immutable and reproduced in order to not store values
     """
 
-    _valid_variable_types = {'int', 'float'}
+    _valid_variable_types = {int, float}
     _valid_bound_types = {'absolute', 'percentile'}
     _valid_bound_codes = {'a': 'absolute', 'p': 'percentile'}
 
@@ -37,6 +37,9 @@ class _BoundElement(object):
         :param values:  observed values for variable;
                         required if `bound_type` is `percentile`;
                         used to validate bounds if `bound_type` = `absolute`
+
+        :param variable_type: the data type of the dimension this bound is being used for. Must be in
+                        {int, float}
         """
 
         # set bound type
@@ -54,7 +57,7 @@ class _BoundElement(object):
         else:
             assert variable_type in self._valid_variable_types
 
-        self._variable_type = str(variable_type)
+        self._variable_type = variable_type
 
 
         if bound_type == 'percentile':
@@ -94,7 +97,7 @@ class _BoundElement(object):
                 assert np.less_equal(lb, np.min(values))
                 assert np.greater_equal(ub, np.max(values))
 
-        if variable_type == 'int':
+        if variable_type == int:
             lb = np.floor(lb)
             ub = np.ceil(ub)
 
@@ -144,7 +147,7 @@ class _ActionElement(object):
 
     _default_check_flag = False
     _valid_step_types = {'relative', 'absolute'}
-    _valid_variable_types = {'int', 'float'}
+    _valid_variable_types = {int, float}
 
 
     def __init__(self, name, values, bounds = None, variable_type = None, mutable = True, step_type = 'relative', step_direction = 0, step_size = 0.01):
@@ -265,10 +268,10 @@ class _ActionElement(object):
     def variable_type(self, variable_type):
         """:return: True iff variable can be changed."""
         if variable_type is None:
-            self._variable_type = _determine_variable_type(self._values)
+            self._variable_type = _determine_variable_type(self._values, self._name)
         else:
             assert variable_type in self._valid_variable_types
-            self._variable_type = str(variable_type)
+            self._variable_type = variable_type
 
 
     @property
@@ -395,14 +398,14 @@ class _ActionElement(object):
         stop = self.ub
         step = self.step_size
 
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             start = np.floor(self.lb)
             stop = np.ceil(self.ub)
 
         if self.step_type == 'relative':
             step = np.multiply(step, stop - start)
 
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             step = np.ceil(step)
 
         # generate grid
@@ -412,7 +415,7 @@ class _ActionElement(object):
             ipsh()
 
         # cast grid
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             grid = grid.astype('int')
 
         self._grid = grid
@@ -872,12 +875,15 @@ class ActionSet(object):
 
 ### Helper Functions
 
-def _determine_variable_type(values):
+def _determine_variable_type(values, name=None):
+    for v in values:
+        if isinstance(v, str):
+            raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
     integer_valued = np.equal(np.mod(values, 1), 0).all()
     if integer_valued:
-        return 'int'
+        return int
     else:
-        return 'float'
+        return float
 
 
 def _expand_values(value, m):

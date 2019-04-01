@@ -17,6 +17,25 @@ import seaborn as sns
 # Scaling
 from sklearn.preprocessing import StandardScaler
 
+settings = {
+    #
+    # audit settings
+    'data_name': 'credit',
+    'method_name': 'logreg',
+    'normalize_data': True,
+    'force_rational_actions': False,
+    #
+    # script flags
+    'audit_recourse': True,
+    'plot_audits': True,
+    'print_flag': True,
+    'save_flag': True,
+    'randomseed': 2338,
+    #
+    # placeholders
+    'method_suffixes': [''],
+    'audit_suffixes': [''],
+    }
 
 # Paths
 repo_dir = Path(__file__).absolute().parent.parent
@@ -45,6 +64,24 @@ plt.rcParams['xtick.labelsize'] = 20
 plt.rcParams['ytick.labelsize'] = 20
 plt.rc('legend', fontsize = 20)
 
+
+# file names
+output_dir = results_dir / settings['data_name']
+output_dir.mkdir(exist_ok = True)
+
+if settings['normalize_data']:
+    settings['method_suffixes'].append('normalized')
+
+if settings['force_rational_actions']:
+    settings['audit_suffixes'].append('rational')
+
+# set file header
+settings['dataset_file'] = '%s/%s_processed.csv' % (data_dir, settings['data_name'])
+settings['file_header'] = '%s/%s_%s%s' % (output_dir, settings['data_name'], settings['method_name'], '_'.join(settings['method_suffixes']))
+settings['audit_file_header'] = '%s%s' % (settings['file_header'], '_'.join(settings['audit_suffixes']))
+settings['model_file'] = '%s_models.pkl' % settings['file_header']
+settings['audit_file'] = '%s_audit_results.pkl' % settings['audit_file_header']
+
 # Recourse Objects
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
@@ -53,6 +90,44 @@ from recourse.flipset import Flipset
 
 
 ### Helper Functions for Experimental Script
+
+def load_data():
+    """Helper function to load in data, and output that and optionally a scaler object:
+
+    Output:
+        data: dict with  the following fields
+            outcome_name:               Name of the outcome variable (inferred as the first column.)
+            variable_names:             A list of names indicating input columns.
+            X:                          The input features for our model.
+            y:                          The column of the dataframe indicating our outcome variable.
+            scaler:                     The sklearn StandardScaler used to normalize the dataset, if we wish to scale.
+            X_scaled:                   Scaled version of X, if we wish to scale
+            X_train:                    The training set: set to the whole dataset if not scaled. Set to X_scaled if we do scale.
+
+        scaler:
+            Object used to scale data. If "scale" is set to None, then this is returned as None.
+    """
+    # data set
+    data_df = pd.read_csv(settings['dataset_file'])
+    data = {
+        'outcome_name': data_df.columns[0],
+        'variable_names': data_df.columns[1:].tolist(),
+        'X': data_df.iloc[:, 1:],
+        'y': data_df.iloc[:, 0]
+    }
+
+    scaler = None
+    data['X_train'] = data['X']
+    data['scaler'] = None
+    if settings['normalize_data']:
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+        data['X_scaled'] = pd.DataFrame(scaler.fit_transform(data['X'].to_numpy(dtype=float), data['y'].values),
+                                        columns=data['X'].columns)
+        data['X_train'] = data['X_scaled']
+        data['scaler'] = scaler
+
+    return data, scaler
 
 def undo_coefficient_scaling(clf = None, coefficients = None, intercept = 0.0, scaler = None):
     """
@@ -440,3 +515,54 @@ def label_lines(lines, align=True, xvals=None, **kwargs):
 
     for line, x, label in zip(labLines, xvals, labels):
         label_line(line, x, label, align, **kwargs)
+
+
+def refomat_gridsearch_df(grid_search_df, settings, n_coefficients, invert_C=True):
+    """
+    Take a fitted GridSearchCV and return:
+     model_stats_df: data frame containing 1 row for fold x free parameter instance.
+     columns include:
+      - 'data_name',
+      - 'method_name',
+      - 'free_parameter_name',
+      - 'free_parameter_value' (for each item in free parameter),
+      - training error,
+      - testing error,
+      - n_coefficients
+    :param grid_search_df:
+    :param n_coefficients: size of input dataset
+    :param invert_C: if C is a parameter, invert it (C = 1/lambda in l1 regression)
+    :return:
+    """
+    train_score_df = (grid_search_df
+                        .loc[:, filter(lambda x: 'train_score' in x and 'split' in x, grid_search_df.columns)]
+                        .unstack()
+                        .reset_index()
+                        .rename(columns={'level_0': 'split_num', 0: 'train_score'})
+                        .set_index('level_1')
+                        .assign(split_num=lambda df: df.apply(lambda x: x['split_num'].replace('_train_score', ''), axis=1))
+                      )
+
+    test_score_df = (grid_search_df
+                        .loc[:, filter(lambda x: 'test_score' in x and 'split' in x, grid_search_df.columns)]
+                        .unstack()
+                        .reset_index()
+                        .rename(columns={'level_0': 'split_num', 0: 'test_score'})
+                        .set_index('level_1')
+                        .assign(split_num=lambda df: df.apply(lambda x: x['split_num'].replace('_test_score', ''), axis=1)))
+
+    model_stats_df= pd.concat([train_score_df, test_score_df.drop('split_num', axis=1)], axis=1)
+    model_stats_df['dataname'] = settings['data_name']
+    param_df = (grid_search_df['params']
+                .apply(pd.Series))
+    if invert_C:
+        param_df['C'] = 1 / param_df['C']
+    param_df = (param_df.rename(
+        columns={col: 'param %d: %s' % (idx, col) for idx, col in enumerate(param_df.columns)})
+    ).assign(key=grid_search_df['key'])
+
+    model_stats_df = (model_stats_df
+        .merge(param_df, left_index=True, right_index=True)
+    )
+    return model_stats_df.assign(n_coefficients=n_coefficients)
+

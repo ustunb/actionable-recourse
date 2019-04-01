@@ -621,6 +621,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         # cost/action information
         build_info, indices = self._get_mip_build_info()
+        ## TODO: note: if actiongrid is empty, build_info, indices == {}. Correct handling?
 
         # initialize mip
         mip = Cplex()
@@ -684,9 +685,9 @@ class _RecourseBuilderCPX(RecourseBuilder):
             mip.objective.set_linear(objval_pairs)
 
         elif cost_type == 'max':
-
             indices['max_cost_var_name'] = ['max_cost']
-            indices['epsilon'] = np.min(indices['cost_df']) / np.sum(indices['cost_ub'])
+            ## handle empty actionsets
+            indices['epsilon'] = np.min(indices['cost_df'] or np.inf) / np.sum(indices['cost_ub'])
             vars.add(names = indices['max_cost_var_name'] + indices['cost_var_names'],
                      types = ['C'] * (n_actionable + 1),
                      obj = [1.0] + [indices['epsilon']] * n_actionable)

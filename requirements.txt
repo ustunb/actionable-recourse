@@ -10,3 +10,4 @@ seaborn>=0.9.0
 traitlets>=4.3.2
 IPython>=7.2.0
 pytest>=4.3.0
+tqdm>=4.24.0

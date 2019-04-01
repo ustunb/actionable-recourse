@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from tqdm.auto import tqdm
+
 from recourse.defaults import DEFAULT_SOLVER
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
@@ -97,11 +99,14 @@ class RecourseAuditor(object):
 
         # solve recourse problem
         output = []
+        pbar = tqdm(total=len(audit_idx)) ## stop tqdm from playing badly in ipython notebook.
         for idx in audit_idx:
             self.builder.x = U[idx, :]
             info = self.builder.fit()
             info['idx'] = idx
             output.append({k: info[k] for k in ['feasible', 'cost', 'idx']})
+            pbar.update(1)
+        pbar.close()
 
         # add in points that were not denied recourse
         df = pd.DataFrame(output)
