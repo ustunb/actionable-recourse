@@ -509,7 +509,7 @@ class RecourseBuilder(object):
         """
         if self._apriori_infeasible:
             return self._empty_mip_solution_info
-        
+
         assert self._mip is not None, 'must first initialize recourse IP'
 
         # update time limit and node limit
