@@ -565,4 +565,3 @@ def refomat_gridsearch_df(grid_search_df, settings, n_coefficients, invert_C=Tru
         .merge(param_df, left_index=True, right_index=True)
     )
     return model_stats_df.assign(n_coefficients=n_coefficients)
-
