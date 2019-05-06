@@ -10,6 +10,9 @@ doc/datasets/generated/
 ci_scripts/
 skltemplate/
 
+# other
+examples/paper/results
+
 # jekyll
 *.yml
 .nojekyll
@@ -20,7 +23,6 @@ skltemplate/
 
 # odyssey
 *.command
-
 
 # directories
 local/
@@ -39,10 +41,11 @@ __pycache__/
 *.so
 
 *.egg-info
-scripts/temp_results
-scripts/temp_results/*
+temp_results
+temp_results/*
 
 # Distribution / packaging
+.pytest_cache
 .Python
 env/
 venv/

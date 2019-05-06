@@ -1,93 +1,123 @@
-import time
-import warnings
 import numpy as np
-from recourse.recourse_problem import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC
+import pandas as pd
+from tqdm.auto import tqdm
+
+from recourse.defaults import DEFAULT_SOLVER
+from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
+from recourse.builder import RecourseBuilder
+
+# todo add timer / print
+
+class RecourseAuditor(object):
+    """
+    Compute feasibility and cost of recourse over a sample of points that were denied access.
+    (i.e. this method will not be run on data points that are already qualifying, (eg. y_pred > 0).
+    """
+
+    _default_print_flag = True
 
 
-class Auditor(object):
-
-
-    def __init__(self, X, y = None, actionset = None, optimizer = _SOLVER_TYPE_CPX, decision_threshold=None, **clf_args):
+    def __init__(self, action_set, **kwargs):
         """
-        Run an audit on a classifier.
-
-        :param optimizer:
-        :param clf:
-        :param coefficients:
-        :param intercept:
-        :param actionset:
+        :param action_set: ActionSet  for features
+        :param clf: scikit-learn linear classifier
+        :param coefficients: vector of coefficients (only used when clf is not specified)
+        :param intercept: set to 0.0 by default (only used when clf is not specified)
+        :param solver: valid MIP solver
         """
-        ## set clf and coefficients
-        self.__parse_clf_args(clf_args)
 
-        ### actionset
-        self.actionset = actionset
-        self.X = X
+        # action_set
+        assert isinstance(action_set, ActionSet)
+        self.action_set = action_set
 
-        if not self.actionset:
-            warnings.warn("No actionset provided, instantiating with defaults: all features mutable, all features percentile.")
-            if not self.X:
-                raise("No actionset or X provided.")
-            self.actionset = ActionSet(X = self.X)
-            self.actionset.align(self.coefficients)
+        # attach coefficients
+        self.coefficients, self.intercept = parse_classifier_args(**kwargs)
 
-        self.optimizer = optimizer
-        self.decision_threshold = decision_threshold
+        # align coefficients to action set
+        self.action_set.align(self.coefficients)
 
+        # set solver
+        self.solver = kwargs.get('solver', DEFAULT_SOLVER)
 
-    def __parse_clf_args(self, args):
+        # setup recourse problem
+        self.builder = RecourseBuilder(coefficients = self.coefficients,
+                                       intercept = self.intercept,
+                                       action_set = self.action_set,
+                                       solver = self.solver)
 
-        assert 'clf' in args or ('coefficients' in args)
-
-        if 'clf' in args:
-
-            clf = args['clf']
-            self.coefficients = np.array(clf.coef_).flatten()
-            self.intercept = float(clf.intercept_)
-
-        elif 'coefficients' in args:
-            self.coefficients = args['coefficients']
-            self.intercept = args['intercept'] if 'intercept' in args else 0.0
+        self._print_flag = kwargs.get('print_flag', self._default_print_flag)
 
 
-    def get_negative_points(self):
-        scores = self.clf.predict_proba(self.X)[:, 1]
-        return np.where(scores < self.decision_threshold)[0]
+    @property
+    def print_flag(self):
+        return self._print_flag
 
 
-    def audit(self, num_cases = None):
+    @print_flag.setter
+    def print_flag(self, flag):
+        if flag is None:
+            self._print_flag = bool(self._default_print_flag)
+        elif isinstance(flag, bool):
+            self._print_flag = bool(flag)
+        else:
+            raise AttributeError('print_flag must be boolean or None')
 
-        ### TODO: bake decision threshold into the optimizer.
 
-        denied_individuals = self.get_negative_points()
-        ## downsample
-        if num_cases and num_cases < len(denied_individuals):
-            denied_individuals = np.random.choice(denied_individuals, num_cases)
+    def audit(self, X, y_desired = 1):
+        """
+        evaluate cost and feasibility of recourse for for each point in X
+        that is not assigned a desired outcome
 
-        if not any(self.actionset.aligned):
-            self.actionset.align(self.coefficients)
+        :param X: feature matrix (np.array or pd.DataFrame)
+        :param y_desired: desired label (+1 by default)
+        :return: pd.DataFrame containing the feasibility and cost of recourse for each point in X
+                 rows that already attain desired outcome have entries: feasible = NaN & cost = NaN
+                 rows that are certified to have no recourse have entries: feasible = False & cost = Inf
+        """
 
-        ## run flipsets
-        idx = 0
-        flipsets = {}
-        now = time.time()
-        for i in denied_individuals:
-            if idx % 50 == 0:
-                print('finished %d points in %f...' % (idx, time.time() - now))
-                now = time.time()
+        if isinstance(X, pd.DataFrame):
+            raw_index = X.index.tolist()
+            X = X.values
+        else:
+            raw_index = list(range(X.shape[0]))
 
-            x = self.X[i]
-            fb = RecourseBuilder(
-                optimizer = self.optimizer,
-                coefficients = self.coefficients,
-                intercept = self.intercept,
-                action_set = self.actionset,
-                x=x
-            )
+        assert isinstance(X, np.ndarray)
+        assert X.ndim == 2
+        assert X.shape[0] >= 1
+        assert X.shape[1] == len(self.coefficients)
+        assert np.isfinite(X).all()
+        assert float(y_desired) in {1.0, -1.0, 0.0}
 
-            output = fb.fit()
-            flipsets[i] = output.get('total_cost') or output.get('max_cost')
-            idx += 1
+        U, distinct_idx = np.unique(X, axis = 0, return_inverse = True)
+        scores = U.dot(self.coefficients)
+        if y_desired > 0:
+            audit_idx = np.less(scores, -self.intercept)
+        else:
+            audit_idx = np.greater_equal(scores, -self.intercept)
+        audit_idx = np.flatnonzero(audit_idx)
 
-        return flipsets
+        # solve recourse problem
+        output = []
+        pbar = tqdm(total=len(audit_idx)) ## stop tqdm from playing badly in ipython notebook.
+        for idx in audit_idx:
+            self.builder.x = U[idx, :]
+            info = self.builder.fit()
+            info['idx'] = idx
+            output.append({k: info[k] for k in ['feasible', 'cost', 'idx']})
+            pbar.update(1)
+        pbar.close()
+
+        # add in points that were not denied recourse
+        df = pd.DataFrame(output)
+        df = df.set_index('idx')
+
+        # include unique points that attain desired label already
+        df = df.reindex(range(U.shape[0]))
+
+        # include duplicates of original points
+        df = df.iloc[distinct_idx]
+        df = df.reset_index(drop = True)
+        df.index = raw_index
+        return df
+

@@ -1,13 +1,10 @@
-import os
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
+from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
-from recourse.debug import ipsh
 
-# todo: save function
-# todo: load function
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 
@@ -20,7 +17,7 @@ class _BoundElement(object):
     object is kept immutable and reproduced in order to not store values
     """
 
-    _valid_variable_types = {'int', 'float'}
+    _valid_variable_types = {int, float}
     _valid_bound_types = {'absolute', 'percentile'}
     _valid_bound_codes = {'a': 'absolute', 'p': 'percentile'}
 
@@ -40,6 +37,9 @@ class _BoundElement(object):
         :param values:  observed values for variable;
                         required if `bound_type` is `percentile`;
                         used to validate bounds if `bound_type` = `absolute`
+
+        :param variable_type: the data type of the dimension this bound is being used for. Must be in
+                        {int, float}
         """
 
         # set bound type
@@ -57,7 +57,7 @@ class _BoundElement(object):
         else:
             assert variable_type in self._valid_variable_types
 
-        self._variable_type = str(variable_type)
+        self._variable_type = variable_type
 
 
         if bound_type == 'percentile':
@@ -97,7 +97,7 @@ class _BoundElement(object):
                 assert np.less_equal(lb, np.min(values))
                 assert np.greater_equal(ub, np.max(values))
 
-        if variable_type == 'int':
+        if variable_type == int:
             lb = np.floor(lb)
             ub = np.ceil(ub)
 
@@ -147,7 +147,7 @@ class _ActionElement(object):
 
     _default_check_flag = False
     _valid_step_types = {'relative', 'absolute'}
-    _valid_variable_types = {'int', 'float'}
+    _valid_variable_types = {int, float}
 
 
     def __init__(self, name, values, bounds = None, variable_type = None, mutable = True, step_type = 'relative', step_direction = 0, step_size = 0.01):
@@ -205,8 +205,6 @@ class _ActionElement(object):
             assert len(g) == len(np.unique(g)), 'grid is not unique'
             assert np.all(np.isfinite(g)), 'grid contains elements that are nan or inf'
             assert np.all(g[:-1] <= g[1:]), 'grid is not sorted'
-            #assert np.all(np.greater_equal(G, self.lb)) todo: we should pass this
-            #assert np.all(np.less_equal(G, self.ub))
         return True
 
 
@@ -270,10 +268,10 @@ class _ActionElement(object):
     def variable_type(self, variable_type):
         """:return: True iff variable can be changed."""
         if variable_type is None:
-            self._variable_type = _determine_variable_type(self._values)
+            self._variable_type = _determine_variable_type(self._values, self._name)
         else:
             assert variable_type in self._valid_variable_types
-            self._variable_type = str(variable_type)
+            self._variable_type = variable_type
 
 
     @property
@@ -400,14 +398,14 @@ class _ActionElement(object):
         stop = self.ub
         step = self.step_size
 
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             start = np.floor(self.lb)
             stop = np.ceil(self.ub)
 
         if self.step_type == 'relative':
             step = np.multiply(step, stop - start)
 
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             step = np.ceil(step)
 
         # generate grid
@@ -417,7 +415,7 @@ class _ActionElement(object):
             ipsh()
 
         # cast grid
-        if self._variable_type == 'int':
+        if self._variable_type == int:
             grid = grid.astype('int')
 
         self._grid = grid
@@ -658,6 +656,7 @@ class ActionSet(object):
 
 
     def __getitem__(self, index):
+
         if isinstance(index, str):
             return self._elements[index]
         elif isinstance(index, (int, np.int_)):
@@ -682,7 +681,7 @@ class ActionSet(object):
 
 
     def __getattribute__(self, name):
-        if name[0] == '_' or not hasattr(_ActionElement, name):
+        if name[0] == '_' or name == 'aligned' or not hasattr(_ActionElement, name):
             return object.__getattribute__(self, name)
         else:
             return [getattr(self._elements[n], name) for n, j in self._indices.items()]
@@ -827,69 +826,29 @@ class ActionSet(object):
         table = df.to_latex(index = False, escape = False)
         return table
 
+    #### alignment ####
 
-    ### save / load ####
-
-    @staticmethod
-    def load(file_name):
-
-        raise NotImplementedError()
-
-        try:
-            import pickle
-        except ImportError:
-            import cPickle as pickle
-
-        assert os.path.isfile(file_name), 'file %s not found' % file_name
-
-        with open(file_name, 'rb') as infile:
-            file_contents = pickle.load(infile)
-        assert 'elements' in file_contents
-        assert 'indices' in file_contents
-
-        self._elements = self._elements
-        self._indices = self._indices
-        self._print_flag = file_contents.get('print_flag', self._default_print_flag)
-        self._check_flag = file_contents.get('print_flag', self._default_check_flag)
-        return self
-
-
-    def save(self, file_name, overwrite = True):
-
-        raise NotImplementedError()
-
-        try:
-            import pickle
-        except ModuleNotFoundError:
-            import cPickle as pickle
-
-        if overwrite is False:
-            if os.path.isfile(file_name):
-                raise IOError('file %s already exist on disk' % file_name)
-
-        self._check_rep()
-        file_contents = {'elements': self._elements, 'indices': self._indices, 'print_flag': self.print_flag, 'check_flag': self.check_flag}
-        with open(file_name, 'wb') as outfile:
-            pickle.dump(file_contents, outfile, protocol = pickle.HIGHEST_PROTOCOL)
-        return True
-
-
-    ### core methods ###
-    def align(self, coefficients):
+    def align(self, *args, **kwargs):
         """
         adjusts direction of recourse for each element in action set
-        :param coefficients: vector of coeffections
+        :param clf: scikit-learn classifier or vector of coefficients
         :return:
         """
-        assert isinstance(coefficients, (list, np.ndarray))
-        assert len(self) == len(coefficients)
-        assert np.all(np.isfinite(coefficients))
-
-        flips = np.sign(np.array(coefficients).flatten())
+        coefs, _ = parse_classifier_args(*args, **kwargs)
+        assert len(coefs) == len(self)
+        flips = np.sign(coefs)
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
 
 
+    @property
+    def aligned(self):
+        """
+        :return: True if action set has been aligned with coefficients of linear classifier
+        """
+        return all([e.aligned for e in self._elements.values()])
+
+    #### grid generation  ####
     def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_immutable = False):
         """
         returns feasible features when features are x
@@ -897,8 +856,7 @@ class ActionSet(object):
         :param action_grid: set to True for returned grid to reflect changes to x
         :param return_percentiles: set to True to include percentiles in return values
         :param return_immutable: set to True to restrict return values to only actionable features
-
-        :return: dictionary of the form {name:feasible_values}
+        :return: dictionary of the form {name: feasible_values}
         """
         assert isinstance(x, (list, np.ndarray)), 'feature values should be list or np.ndarray'
         assert len(x) == len(self), 'dimension mismatch x should have len %d' % len(self)
@@ -917,12 +875,15 @@ class ActionSet(object):
 
 ### Helper Functions
 
-def _determine_variable_type(values):
+def _determine_variable_type(values, name=None):
+    for v in values:
+        if isinstance(v, str):
+            raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
     integer_valued = np.equal(np.mod(values, 1), 0).all()
     if integer_valued:
-        return 'int'
+        return int
     else:
-        return 'float'
+        return float
 
 
 def _expand_values(value, m):

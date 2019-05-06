@@ -1,11 +1,8 @@
 # This file contains general helper functions for any CPLEX MIP Object
-
 import numpy as np
 from functools import reduce
 from cplex import Cplex, SparsePair
 from cplex.exceptions import CplexError
-from cplex.callbacks import MIPInfoCallback
-
 
 # Convenience Functions when working with MIP
 
@@ -18,16 +15,8 @@ def copy_cplex(cpx):
     return cpx_copy
 
 
-def get_lp_relaxation(cpx):
-    rlx = copy_cplex(cpx)
-    if rlx.get_problem_type() is rlx.problem_type.MILP:
-        rlx.set_problem_type(rlx.problem_type.LP)
-    return rlx
-
-
 # Building
-
-def add_variable(cpx, name, obj, ub, lb, vtype):
+def add_variable_cpx(cpx, name, obj, ub, lb, vtype):
 
     # name
     if isinstance(name, np.ndarray):
@@ -118,7 +107,6 @@ def add_variable(cpx, name, obj, ub, lb, vtype):
 
 
 # Parameter Setting
-
 DEFAULT_CPLEX_PARAMETERS = {
     #
     'display_cplex_progress': True,
@@ -259,7 +247,6 @@ DEFAULT_CPLEX_PARAMETERS = {
 
 
 def set_cpx_display_options(cpx, display_mip = True, display_parameters = False, display_lp = False):
-
     cpx.parameters.mip.display.set(display_mip)
     cpx.parameters.simplex.display.set(display_lp)
     cpx.parameters.paramdisplay.set(display_parameters)
@@ -273,7 +260,7 @@ def set_cpx_display_options(cpx, display_mip = True, display_parameters = False,
     return cpx
 
 
-def set_mip_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
+def set_cpx_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
 
     # get parameter handle
     p = cpx.parameters
@@ -317,21 +304,15 @@ def set_mip_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
     p.mip.tolerances.absmipgap.set(param['absmipgap'])
 
     if param['time_limit'] < DEFAULT_CPLEX_PARAMETERS['time_limit']:
-        cpx = set_mip_time_limit(cpx, param['time_limit'])
+        cpx = set_cpx_time_limit(cpx, param['time_limit'])
 
     if param['node_limit'] < DEFAULT_CPLEX_PARAMETERS['node_limit']:
-        cpx = set_mip_node_limit(cpx, param['node_limit'])
-
-    # node file
-    # p.workdir.Cur  = exp_workdir;
-    # p.workmem.Cur                    = cplex_workingmem;
-    # p.mip.strategy.file.Cur          = 2; %nodefile uncompressed
-    # p.mip.limits.treememory.Cur      = cplex_nodefilesize;
+        cpx = set_cpx_node_limit(cpx, param['node_limit'])
 
     return cpx
 
 
-def get_mip_parameters(cpx):
+def get_cpx_parameters(cpx):
 
     p = cpx.parameters
 
@@ -388,7 +369,7 @@ def set_mip_cutoff_values(cpx, objval, objval_increment):
     return cpx
 
 
-def set_mip_time_limit(cpx, time_limit = None):
+def set_cpx_time_limit(cpx, time_limit = None):
     """
 
     :param cpx:
@@ -408,7 +389,7 @@ def set_mip_time_limit(cpx, time_limit = None):
     return cpx
 
 
-def set_mip_node_limit(cpx, node_limit = None):
+def set_cpx_node_limit(cpx, node_limit = None):
     """
 
     :param cpx:
@@ -416,18 +397,19 @@ def set_mip_node_limit(cpx, node_limit = None):
     :return:
     """
     max_node_limit = cpx.parameters.mip.limits.nodes.max()
-    if node_limit is not None:
+    if node_limit == float('inf'):
+        node_limit = max_node_limit
+    elif node_limit is None:
+        node_limit = max_node_limit
+    else:
         node_limit = int(node_limit)
         node_limit = min(node_limit, max_node_limit)
-    else:
-        node_limit = max_node_limit
-
     assert node_limit >= 0.0
     cpx.parameters.mip.limits.nodes.set(node_limit)
     return cpx
 
 
-def toggle_mip_preprocessing(cpx, toggle = True):
+def toggle_cpx_preprocessing(cpx, toggle = True):
     """toggles pre-processing on/off for debugging / computational experiments"""
 
     # presolve
@@ -483,7 +465,7 @@ def toggle_mip_preprocessing(cpx, toggle = True):
 
 # Solution Statistics
 
-def get_mip_stats(cpx):
+def get_stats_cpx(cpx):
     """returns information associated with the current best solution for the mip"""
 
     INITIAL_SOLUTION_INFO = {
@@ -533,7 +515,7 @@ def get_mip_stats(cpx):
 
 # Initialization
 
-def add_mip_start(cpx, solution, effort_level = 1, name = None):
+def add_mip_start_cpx(cpx, solution, effort_level = 1, name = None):
     """
     :param cpx:
     :param solution:
@@ -556,176 +538,3 @@ def add_mip_start(cpx, solution, effort_level = 1, name = None):
         cpx.MIP_starts.add(mip_start, effort_level, name)
 
     return cpx
-
-
-# Branch and Bound Statistics
-
-class StatsCallback(MIPInfoCallback):
-
-    def initialize(self, store_solutions = False, solution_start_idx = None, solution_end_idx = None):
-
-        # scalars
-        self.times_called = 0
-        self.start_time = None
-
-        # stats that are stored at every call len(stat) = times_called
-        self.runtimes = []
-        self.nodes_processed = []
-        self.nodes_remaining = []
-        self.lowerbounds = []
-
-        # stats that are stored at every incumbent update
-        self.best_objval = float('inf')
-        self.update_iterations = []
-        self.incumbents = []
-        self.upperbounds = []
-
-        self.store_incumbent_solutions = store_solutions
-
-        if self.store_incumbent_solutions:
-            assert solution_start_idx <= solution_end_idx
-            self.start_idx, self.end_idx = int(solution_start_idx), int(solution_end_idx)
-            self.process_incumbent = self.record_objval_and_solution_before_incumbent
-        else:
-            self.process_incumbent = self.record_objval_before_incumbent
-
-    def __call__(self):
-        self.times_called += 1
-        if self.start_time is None:
-            self.start_time = self.get_start_time()
-        self.runtimes.append(self.get_time())
-        self.lowerbounds.append(self.get_best_objective_value())
-        self.nodes_processed.append(self.get_num_nodes())
-        self.nodes_remaining.append(self.get_num_remaining_nodes())
-        self.process_incumbent()
-
-    def record_objval_before_incumbent(self):
-        if self.has_incumbent():
-            self.record_objval()
-            self.process_incumbent = self.record_objval
-
-    def record_objval_and_solution_before_incumbent(self):
-        if self.has_incumbent():
-            self.record_objval_and_solution()
-            self.process_incumbent = self.record_objval_and_solution
-
-    def record_objval(self):
-        objval = self.get_incumbent_objective_value()
-        if objval < self.best_objval:
-            self.best_objval = objval
-            self.update_iterations.append(self.times_called)
-            self.upperbounds.append(objval)
-
-    def record_objval_and_solution(self):
-        objval = self.get_incumbent_objective_value()
-        if objval < self.best_objval:
-            self.update_iterations.append(self.times_called)
-            self.incumbents.append(self.get_incumbent_values(self.start_idx, self.end_idx))
-            self.upperbounds.append(objval)
-            self.best_objval = objval
-
-    def check_stats(self):
-        """checks stats rep at any point during the solution process"""
-
-        # try:
-        n_calls = len(self.runtimes)
-        n_updates = len(self.upperbounds)
-        assert n_updates <= n_calls
-
-        if n_calls > 0:
-
-            assert len(self.nodes_processed) == n_calls
-            assert len(self.nodes_remaining) == n_calls
-            assert len(self.lowerbounds) == n_calls
-
-            lowerbounds = np.array(self.lowerbounds)
-            for ub in self.upperbounds:
-                assert np.all(ub > lowerbounds)
-
-            runtimes = np.array(self.runtimes) - self.start_time
-            nodes_processed = np.array(self.nodes_processed)
-
-            is_increasing = lambda x: (np.diff(x) >= 0).all()
-            assert is_increasing(runtimes)
-            assert is_increasing(nodes_processed)
-            assert is_increasing(lowerbounds)
-
-        if n_updates > 0:
-
-            assert len(self.update_iterations) == n_updates
-            if self.store_incumbent_solutions:
-                assert len(self.incumbents) == n_updates
-
-            update_iterations = np.array(self.update_iterations)
-            upperbounds = np.array(self.upperbounds)
-            gaps = (upperbounds - lowerbounds[update_iterations - 1]) / (np.finfo(np.float).eps + upperbounds)
-
-            is_increasing = lambda x: (np.diff(x) >= 0).all()
-            assert is_increasing(update_iterations)
-            assert is_increasing(-upperbounds)
-            assert is_increasing(-gaps)
-
-        # except AssertionError:
-        #    ipsh()
-
-        return True
-
-    def get_stats(self, return_solutions = False):
-
-        assert self.check_stats()
-        import pandas as pd
-        MAX_UPPERBOUND = float('inf')
-        MAX_GAP = 1.00
-
-        stats = pd.DataFrame({
-            'runtime': [t - self.start_time for t in self.runtimes],
-            'nodes_processed': list(self.nodes_processed),
-            'nodes_remaining': list(self.nodes_remaining),
-            'lowerbound': list(self.lowerbounds)
-            })
-
-        upperbounds = list(self.upperbounds)
-        update_iterations = list(self.update_iterations)
-        incumbents = []  # empty placeholder
-
-        # add upper bounds as well as iterations where the incumbent changes
-
-        if update_iterations[0] > 1:
-            update_iterations.insert(0, 1)
-            upperbounds.insert(0, MAX_UPPERBOUND)
-        row_idx = [i - 1 for i in update_iterations]
-
-        stats = stats.assign(iterations = pd.Series(data = update_iterations, index = row_idx),
-                             upperbound = pd.Series(data = upperbounds, index = row_idx))
-        stats['incumbent_update'] = np.where(~np.isnan(stats['iterations']), True, False)
-        stats = stats.fillna(method = 'ffill')
-
-        # add relative gap
-        gap = (stats['upperbound'] - stats['lowerbound']) / (stats['upperbound'] + np.finfo(np.float).eps)
-        stats['gap'] = np.fmin(MAX_GAP, gap)
-
-        # add model ids
-        if return_solutions:
-            incumbents = list(self.incumbents)
-            model_ids = range(len(incumbents))
-            row_idx = [i - 1 for i in self.update_iterations]
-            stats = stats.assign(model_ids = pd.Series(data = model_ids, index = row_idx))
-            stats = stats[['runtime',
-                           'gap',
-                           'upperbound',
-                           'lowerbound',
-                           'nodes_processed',
-                           'nodes_remaining',
-                           'model_id',
-                           'incumbent_update']]
-
-        else:
-            stats = stats[['runtime',
-                           'gap',
-                           'upperbound',
-                           'lowerbound',
-                           'nodes_processed',
-                           'nodes_remaining']]
-
-        return stats, incumbents
-
