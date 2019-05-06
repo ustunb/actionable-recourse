@@ -2,23 +2,18 @@
 
 ## Overview
 
-*Recourse* is the ability to change the decision of a predictive model by altering *actionable* input variables (e.g., income vs. age). 
+*Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, # of bank accounts, # of credit cards vs. age, gender, ethnicity). 
 
-This package includes tools to evaluate recourse in linear classification models.
+This package includes tools to audit recourse in linear classification models.
 
-### Package Highlights
+### Highlights
 
 - Generate a list of actionable changes for a person to obtain a specific outcome from a linear model
-
 - Measure the feasibility and difficulty of recourse for model over a population of interest
-
-- Scikit-learn compatability
-
-
 
 ## Installation
 
-You can install from source by running:
+Please install from source by running:
 
 ```
 $ git clone git@github.com:ustunb/actionable-recourse.git
@@ -27,19 +22,12 @@ $ python setup.py
 
 #### Requirements:
 
-- Python 3.5+
-- CPLEX 12.6+
-- CBC 
+- Python 3
+- CPLEX or CBC+Pyomo
  
-#### CBC + Pyomo
-
-* Download COIN-OR and CBC from: https://www.coin-or.org/
-* Install Pyomo using `pip` or `conda` and then run the Pyomo installer in the command line: `pyomo install-extras`
-* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
-
 #### CPLEX 
 
-CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty members at accredited institutions. To get CPLEX:
+CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty at accredited institutions. To get CPLEX:
 
 1. Register for [IBM OnTheHub](https://ibm.onthehub.com/WebStore/Account/VerifyEmailDomain.aspx)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
@@ -48,10 +36,17 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-## Dev Roadmap
+#### CBC + Pyomo
 
+* Download COIN-OR and CBC from: https://www.coin-or.org/
+* Install Pyomo using `pip` or `conda` and then run the Pyomo installer in the command line: `pyomo install-extras`
+* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+
+## Development Roadmap
+
+- Contributing.md
 - Support for categorical variables in `ActionSet`
-- Support for Boolean models such as decision lists and rule lists
+- Support for rule-based such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 
@@ -59,7 +54,7 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 
 For more about recourse or how to use these tools, check out our paper:
 
-[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
+[Actionable Recourse in Linear Classification](http://www.berkustun.com/docs/actionable_recourse.pdf)
      
 ```
 inproceedings{ustun2019recourse,
@@ -75,6 +70,5 @@ inproceedings{ustun2019recourse,
      url = {http://doi.acm.org/10.1145/3287560.3287566},
      doi = {10.1145/3287560.3287566},
      publisher = {ACM},
-     keywords = {accountability, audit, classification, credit scoring, integer programming, recourse},
 }
 ```
