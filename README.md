@@ -18,12 +18,12 @@ $ git clone git@github.com:ustunb/actionable-recourse.git
 $ python setup.py
 ```
 
-#### Requirements:
+#### Requirements
 
 - Python 3
 - Either CPLEX or Pyomo + CBC
  
-#### CPLEX 
+#### Installing CPLEX 
 
 CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty at accredited institutions. To get CPLEX:
 
@@ -34,7 +34,7 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### Pyomo + CBC
+#### Installing CBC and Pyomo
 
 * Download CBC from [this link](https://bintray.com/coin-or/download/Cbc) or from [COIN-OR](https://www.coin-or.org/) 
 * Install Pyomo and Pyomo extras [(instructions)](http://www.pyomo.org/installation)
