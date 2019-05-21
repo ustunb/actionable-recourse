@@ -2,14 +2,12 @@
 
 ## Overview
 
-*Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, # of bank accounts, # of credit cards vs. age, gender, ethnicity). 
+*Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, n_bank_accounts, n_credit_cards as opposed to age, gender, ethnicity). 
 
-This package includes tools to audit recourse in linear classification models.
+### Package Highlights
 
-### Highlights
-
-- Generate a list of actionable changes for a person to obtain a specific outcome from a linear model
-- Measure the feasibility and difficulty of recourse for model over a population of interest
+- List actionable changes for a person to obtain a favorable outcome from a linear classifiers
+- Measure the feasibility and difficulty of recourse for model on a population of interest
 
 ## Installation
 
@@ -23,7 +21,7 @@ $ python setup.py
 #### Requirements:
 
 - Python 3
-- CPLEX or CBC+Pyomo
+- Either CPLEX or Pyomo + CBC
  
 #### CPLEX 
 
@@ -36,17 +34,17 @@ CPLEX is cross-platform commercial optimization tool with a Python API. It is fr
 
 If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### CBC + Pyomo
+#### Pyomo + CBC
 
-* Download COIN-OR and CBC from: https://www.coin-or.org/
-* Install Pyomo using `pip` or `conda` and then run the Pyomo installer in the command line: `pyomo install-extras`
-* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+* Download CBC from [this link](https://bintray.com/coin-or/download/Cbc) or from [COIN-OR](https://www.coin-or.org/) 
+* Install Pyomo and Pyomo extras [(instructions)](http://www.pyomo.org/installation)
 
 ## Development Roadmap
 
+- pip installation
 - Contributing.md
 - Support for categorical variables in `ActionSet`
-- Support for rule-based such as decision lists and rule lists
+- Support for rule-based models such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 
