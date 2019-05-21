@@ -2,7 +2,7 @@
 
 ## Overview
 
-*Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, n_bank_accounts, n_credit_cards as opposed to age, gender, ethnicity). 
+*Recourse* is the ability to alter the prediction of a machine learning model by changing *actionable* input variables (e.g., income, n_bank_accounts, n_credit_cards as opposed to age, gender, ethnicity). 
 
 ### Highlights
 
