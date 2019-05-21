@@ -6,12 +6,12 @@
 
 ### Highlights
 
-- List actionable changes for a person to obtain a favorable outcome from a linear classifiers
-- Measure the feasibility and difficulty of recourse for model on a population of interest
+- Generate a list of changes for a person to flip the prediction of a linear classifier
+- Measure the feasibility and difficulty of recourse for a linear classifier
 
 ## Installation
 
-Please install from source by running:
+Please install from source by running
 
 ```
 $ git clone git@github.com:ustunb/actionable-recourse.git
@@ -36,8 +36,8 @@ If you have problems installing CPLEX, check the [CPLEX user manual](http://www-
 
 #### Installing CBC and Pyomo
 
-* Download CBC from [this link](https://bintray.com/coin-or/download/Cbc) or from [COIN-OR](https://www.coin-or.org/) 
-* Install Pyomo and Pyomo extras [(instructions)](http://www.pyomo.org/installation)
+* Download and install [CBC](https://github.com/coin-or/Cbc) [(download link)](https://bintray.com/coin-or/download/Cbc)
+* Download and install pyomo and pyomo-extras [(instructions)](http://www.pyomo.org/installation)
 
 ## Development Roadmap
 
