@@ -4,7 +4,7 @@
 
 *Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, n_bank_accounts, n_credit_cards as opposed to age, gender, ethnicity). 
 
-### Package Highlights
+### Highlights
 
 - List actionable changes for a person to obtain a favorable outcome from a linear classifiers
 - Measure the feasibility and difficulty of recourse for model on a population of interest
