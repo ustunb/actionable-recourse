@@ -11,12 +11,11 @@
 
 *Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
 
-**When should models provide recourse?**
-
+#### When should models provide recourse?
 
 Recourse is an important element of human-facing applications of ML. In applications such as lending or allocation of public services, models should allow individuals with the ability to change their prediction. In other applications, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that uses `age` and `prior_arrests`, for example, should a person that is predicted to recidivate with the ability to alter this prediction via `age`.
 
-**What does this library let me do?**
+#### Package Highlights
 
 The tools in this library allow you check recourse without interfering in the the model development process. 
 
@@ -24,7 +23,7 @@ The tools in this library allow you check recourse without interfering in the th
 - How many people will be able to alter their predictions?
 - How hard is it for people to change their prediction?
 
-**Package Highlights**
+Specifically:
 
 - Specify a custom set of feasible actions for each input variables to a ML model.
 - Generate a list of actionable changes to flip the prediction of a linear classifier.
@@ -42,12 +41,12 @@ $ git clone git@github.com:ustunb/actionable-recourse.git
 $ python setup.py
 ```
 
-**Requirements**
+#### Requirements
 
 - Python 3
 - MIP solver: either CPLEX or Pyomo + CBC
  
-**Installing CPLEX**
+#### CPLEX
 
 CPLEX is fast optimization solver with a Python API. It is commercial software, but worth downloading since it is free to students and faculty at accredited institutions. To get CPLEX:
 
@@ -58,7 +57,7 @@ CPLEX is fast optimization solver with a Python API. It is commercial software, 
 
 If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-**Installing CBC and Pyomo**
+#### CBC + Pyomo
 
 If you are unable to obtain CPLEX, you can also work with an open-source solver. This requires the following steps (which you can do *before* you) 
 
@@ -67,7 +66,11 @@ If you are unable to obtain CPLEX, you can also work with an open-source solver.
 
 ----
 
-## Development Roadmap
+## Development 
+
+We're actively working to improve this package and make it more useful. If you come across bugs, have comments or suggestions, or want to help out, let us know! 
+
+#### Roadmap
 
 - pip installation
 - `Contributing.md`
@@ -80,10 +83,9 @@ If you are unable to obtain CPLEX, you can also work with an open-source solver.
 
 ## Reference
 
-For more about recourse or how to use these tools, check out our paper:
+For more about recourse and our tools, check out our paper:
 
 [Actionable Recourse in Linear Classification](http://www.berkustun.com/docs/actionable_recourse.pdf)
-     
 ```
 inproceedings{ustun2019recourse,
      title = {Actionable Recourse in Linear Classification},
