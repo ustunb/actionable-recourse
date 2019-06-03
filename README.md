@@ -16,7 +16,9 @@
 
 - Measure the *difficulty of recourse* for a linear classifier on a population of interest (i.e., how difficult is it for individuals on change their prediction).
 
-## Installation
+----
+
+### Installation
 
 Please install from source by running
 
@@ -25,12 +27,12 @@ $ git clone git@github.com:ustunb/actionable-recourse.git
 $ python setup.py
 ```
 
-#### Requirements
+**Requirements**
 
 - Python 3
 - MIP solver: either CPLEX or Pyomo + CBC
  
-#### Installing CPLEX 
+**Installing CPLEX **
 
 CPLEX is fast optimization solver with a Python API. It is commercial software, but worth downloading since it is free to students and faculty at accredited institutions. To get CPLEX:
 
@@ -41,12 +43,14 @@ CPLEX is fast optimization solver with a Python API. It is commercial software, 
 
 If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### Installing CBC and Pyomo
+**Installing CBC and Pyomo**
 
 If you are unable to obtain CPLEX, you can also work with an open-source solver. This requires the following steps (which you can do *before* you) 
 
 1. Download and install [CBC](https://github.com/coin-or/Cbc) from [Bintray](https://bintray.com/coin-or/download/Cbc)
 2. Download and install `pyomo` *and* `pyomo-extras` [(instructions)](http://www.pyomo.org/installation)
+
+----
 
 ## Development Roadmap
 
@@ -56,6 +60,8 @@ If you are unable to obtain CPLEX, you can also work with an open-source solver.
 - Support for rule-based models such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
 - [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+
+----
 
 ## Reference
 
