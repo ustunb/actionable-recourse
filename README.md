@@ -2,13 +2,17 @@
 
 ## Overview
 
-*Recourse* is the ability to change the prediction of a fixed model by altering *actionable* input variables (e.g., income vs. age).
+*Recourse* is the ability to flip the prediction of a fixed model by change *actionable* input variables (e.g., `income` instead of `age` or `gender`). 
 
-The tools in this library let you:
+**Package Highlights**
 
-- Generate a list of actionable changes for a person to flip the prediction of a linear classifier
-- Measure the feasibility of recourse of a linear classifier over a population of interest
-- Measure the difficulty of recourse for a linear classifier over a population of interest
+- Specify a custom set of feasible actions for each input to a machine learning model.
+
+- Generate a list of actionable changes to flip the prediction of a linear classifier (i.e., what can a person do to obtain a favorable outcome from a model).
+
+- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest (i.e., how many people will be able to alter their predictions?).
+
+- Measure the *difficulty of recourse* for a linear classifier on a population of interest (i.e., how difficult is it for individuals on change their prediction).
 
 ## Installation
 
