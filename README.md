@@ -42,7 +42,7 @@ $ python setup.py
 - Python 3
 - MIP solver: either CPLEX or Pyomo + CBC
  
-**Installing CPLEX **
+**Installing CPLEX**
 
 CPLEX is fast optimization solver with a Python API. It is commercial software, but worth downloading since it is free to students and faculty at accredited institutions. To get CPLEX:
 
@@ -65,11 +65,11 @@ If you are unable to obtain CPLEX, you can also work with an open-source solver.
 ## Development Roadmap
 
 - pip installation
-- Contributing.md
-- Support for categorical variables in `ActionSet`
-- Support for rule-based models such as decision lists and rule lists
+- `Contributing.md`
+- support for categorical variables in `ActionSet`
+- support for rule-based models such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
-- [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+- [integration into AI360 Fairness toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
 
 ----
 
