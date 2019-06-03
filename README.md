@@ -1,8 +1,8 @@
 `actionable-recourse` is a python library to check recourse in linear classification models. 
 
-## Overview
+**Recourse?**
 
-*Recourse* is the ability to flip the prediction of a fixed model by change *actionable* input variables (e.g., `income` instead of `age` or `gender`). 
+*Recourse* is the ability to flip the prediction of a machine learning model by change *actionable* input variables (e.g., `income` instead of `age` or `gender`). 
 
 **Package Highlights**
 
