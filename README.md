@@ -21,13 +21,10 @@ The tools in this library allow you check recourse without interfering in the th
 
 **Package Highlights**
 
-- Specify a custom set of feasible actions for the input variables of a machine learning model.
-
-- Generate a list of actionable changes to flip the prediction of a linear classifier -- i.e., 
-
-- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest -- i.e., 
-
-- Measure the *difficulty of recourse* for a linear classifier on a population of interest -- i.e., 
+- Specify a custom set of feasible actions for each input variables to a ML model.
+- Generate a list of actionable changes to flip the prediction of a linear classifier.
+- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest.
+- Measure the *difficulty of recourse* for a linear classifier on a population of interest.
 
 ----
 
