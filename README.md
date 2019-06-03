@@ -1,6 +1,6 @@
 `actionable-recourse` is a python library to check recourse in linear classification models. 
 
-- [Recourse][https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse]
+- [Recourse](https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse)
 - [Installation](https://github.com/ustunb/actionable-recourse/blob/master/README.md#installation)
 - [Development Roadmap](https://github.com/ustunb/actionable-recourse/blob/master/README.md#development)
 - [Reference](https://github.com/ustunb/actionable-recourse/blob/master/README.md#reference)
