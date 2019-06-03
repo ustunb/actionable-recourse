@@ -2,19 +2,32 @@
 
 ----
 
-**Recourse?**
+### Recourse?
 
-*Recourse* is the ability to flip the prediction of a machine learning model by change *actionable* input variables (e.g., `income` instead of `age` or `gender`). 
+*Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
+
+**When should models provide recourse?**
+
+
+Recourse is an important element of human-facing applications of ML. In applications such as lending or allocation of public services, models should allow individuals with the ability to change their prediction. In other applications, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that uses `age` and `prior_arrests`, for example, should a person that is predicted to recidivate with the ability to alter this prediction via `age`.
+
+**What does this library let me do?**
+
+The tools in this library allow you check recourse without interfering in the the model development process. 
+
+- What can a person do to obtain a favorable outcome from a model?
+- How many people will be able to alter their predictions?
+- How hard is it for people to change their prediction?
 
 **Package Highlights**
 
-- Specify a custom set of feasible actions for each input to a machine learning model.
+- Specify a custom set of feasible actions for the input variables of a machine learning model.
 
-- Generate a list of actionable changes to flip the prediction of a linear classifier (i.e., what can a person do to obtain a favorable outcome from a model).
+- Generate a list of actionable changes to flip the prediction of a linear classifier -- i.e., 
 
-- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest (i.e., how many people will be able to alter their predictions?).
+- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest -- i.e., 
 
-- Measure the *difficulty of recourse* for a linear classifier on a population of interest (i.e., how difficult is it for individuals on change their prediction).
+- Measure the *difficulty of recourse* for a linear classifier on a population of interest -- i.e., 
 
 ----
 
