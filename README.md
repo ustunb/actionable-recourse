@@ -2,7 +2,7 @@
 
 ----
 
-### Recourse?
+## Recourse?
 
 *Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
 
@@ -28,7 +28,7 @@ The tools in this library allow you check recourse without interfering in the th
 
 ----
 
-### Installation
+## Installation
 
 Please install from source by running
 
