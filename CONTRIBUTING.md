@@ -1,11 +1,10 @@
 # Contributing
 
-First off, thank you for taking the time to contribute to `actionable-recourse`!
+First off, thank you for taking the time to contribute!
 
-When contributing to this repository, please first discuss the change you wish to make via issue,
-email, or any other method with the owners of this repository before making a change.
+When contributing, please first discuss the change you wish to make via issue, email, or any other method with us before making a change!
 
-Please note we have a code of conduct, please follow it in all your interactions with the project.
+Note we have a code of conduct that you should follow in all your interactions with the project
 
 ## Pull Request Process
 
@@ -90,10 +89,7 @@ members of the project's leadership.
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
 available at [http://contributor-covenant.org/version/1/4][version]
 
-[homepage]: http://contributor-covenant.org
-[version]: http://contributor-covenant.org/version/1/4/
-
 ### Project Leads:
 
-Berk Ustin, contact: squall14414@gmail.com
+Berk Ustun, contact: squall14414@gmail.com
 Alexander Spangher, contact: alexander.spangher@gmail.com
