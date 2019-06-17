@@ -11,13 +11,56 @@ This package includes tools to audit recourse in linear classification models.
 - Generate a list of actionable changes for a person to obtain a specific outcome from a linear model
 - Measure the feasibility and difficulty of recourse for model over a population of interest
 
+## Example Usage
+
+- Auditing a 
+
+```
+auditor = RecourseAuditor(
+    action_set,
+    coefficients = coefficients,  ## 1-dim coefficient vector for a linear model
+    intercept = intercept         ## intercept for a linear model
+)
+audit_results = auditor.audit(
+     X = X ## matrix of individuals over which to perform the audit.
+) 
+```
+
+- Generate a list of actionable changes for a person to obtain a specific outcome.
+```
+action_set = ActionSet(X = X)
+fb = Flipset(
+     x = x,                       ## features of the individual we wish to provide recourse for.
+     action_set = action_set,     ## instance of ActionSet class
+     coefficients = coefficients, ## 1-dim coefficient vector for a linear model
+     intercept = intercept        ## intercept for a linear model
+)
+fb.populate(
+     enumeration_type = 'distinct_subsets',   ## method for generating distinct actionsets
+     total_items = 14                         ## total number of valid actionsets to generate
+)
+fb.to_latex()
+fb.to_html()
+```
+
+- Customizing the actions available to a user:
+
+```
+action_set = ActionSet(X = X)
+action_set['Age'].mutable = False                                 ## set a dimension as "immutable" 
+action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
+action_set['CheckingAccountBalance_geq_0'].step_direction = 1     ## force conditional immutability.
+action_set['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
+action_set['LoanDuration'].step_type ="absolute"                  ## set traversal to absolute value rather than default  (percentile of range in data)
+action_set['LoanDuration'].step_size = 6
+```
+
 ## Installation
 
 Please install from source by running:
 
 ```
-$ git clone git@github.com:ustunb/actionable-recourse.git
-$ python setup.py
+$ pip install actionable-recourse
 ```
 
 #### Requirements:
@@ -72,3 +115,7 @@ inproceedings{ustun2019recourse,
      publisher = {ACM},
 }
 ```
+
+## Contributing
+
+We welcome any and all contributions! Please follow `CONTRIBUTING.md` for specific guidelines on how to contribute. Thank you, community :)
