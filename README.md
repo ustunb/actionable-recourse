@@ -1,104 +1,125 @@
 `actionable-recourse` is a python library to evaluate recourse in linear classification models. 
 
-## Overview
+### [Recourse](https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse) | [Installation](https://github.com/ustunb/actionable-recourse/blob/master/README.md#installation) | [Development](https://github.com/ustunb/actionable-recourse/blob/master/README.md#development) | [Reference](https://github.com/ustunb/actionable-recourse/blob/master/README.md#reference)
 
-*Recourse* is the ability to change the decision of a model by altering *actionable* input variables (e.g., income, # of bank accounts, # of credit cards vs. age, gender, ethnicity). 
+-----
 
-This package includes tools to audit recourse in linear classification models.
+## Recourse?
 
-### Highlights
+*Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
 
-- Generate a list of actionable changes for a person to obtain a specific outcome from a linear model
-- Measure the feasibility and difficulty of recourse for model over a population of interest
+#### When should models provide recourse?
 
-## Example Usage
+Recourse is an important element of human-facing applications of machine learning. In tasks such as lending or allocation of public services, models should provide all individuals with an actionable way to hange their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age` and `prior_arrests`, for example, should let a person who is predicted to recidivate with the ability to alter this prediction without alterning `age`.
 
-- Auditing a 
+#### Package Highlights
 
-```
-auditor = RecourseAuditor(
-    action_set,
-    coefficients = coefficients,  ## 1-dim coefficient vector for a linear model
-    intercept = intercept         ## intercept for a linear model
-)
-audit_results = auditor.audit(
-     X = X ## matrix of individuals over which to perform the audit.
-) 
-```
+The tools in this library let you check recourse without interfering in the model development process. 
 
-- Generate a list of actionable changes for a person to obtain a specific outcome.
-```
-action_set = ActionSet(X = X)
-fb = Flipset(
-     x = x,                       ## features of the individual we wish to provide recourse for.
-     action_set = action_set,     ## instance of ActionSet class
-     coefficients = coefficients, ## 1-dim coefficient vector for a linear model
-     intercept = intercept        ## intercept for a linear model
-)
-fb.populate(
-     enumeration_type = 'distinct_subsets',   ## method for generating distinct actionsets
-     total_items = 14                         ## total number of valid actionsets to generate
-)
-fb.to_latex()
-fb.to_html()
-```
+They are built to answer questions like:
 
-- Customizing the actions available to a user:
+- What can a person do to obtain a favorable outcome from a model?
+- How many people will be able to alter their predictions?
+- How hard is it for people to change their prediction?
+
+Precise functionality includes:
+
+- Specify a custom set of feasible actions for each input variables to a ML model.
+- Generate a list of actionable changes to flip the prediction of a linear classifier.
+- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest.
+- Measure the *difficulty of recourse* for a linear classifier on a population of interest.
+
+----
+
+## Usage
 
 ```
-action_set = ActionSet(X = X)
-action_set['Age'].mutable = False                                 ## set a dimension as "immutable" 
-action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
-action_set['CheckingAccountBalance_geq_0'].step_direction = 1     ## force conditional immutability.
-action_set['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
-action_set['LoanDuration'].step_type ="absolute"                  ## set traversal to absolute value rather than default  (percentile of range in data)
-action_set['LoanDuration'].step_size = 6
+# train a classifier
+#todo: load data and train linear classifier
+
+# customize the set of actions
+A = ActionSet(X = X)
+A['Age'].mutable = False                                 ## forces "age" to be immutable
+A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
+A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
+A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
+A['LoanDuration'].step_size = 6
+
+# build a flipset
+fs = Flipset(x = x, action_set = A, coefficients = w, intercept = b)
+fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
+fs.to_latex()
+fs.to_html()
+
+# Run Recourse Audit on Training Data
+auditor = RecourseAuditor(action_set, coefficients = w, intercept = b)
+audit_results = auditor.audit(X = X) ## matrix of features over which we will perform the audit.
+
+#todo: print feasibility
+#todo: print average cost
 ```
 
+----
 ## Installation
 
-Please install from source by running:
+The latest release can be installed directly by running:
 
 ```
 $ pip install actionable-recourse
 ```
 
+You can also install from source by running:
+
+```
+$ git clone git@github.com:ustunb/actionable-recourse.git
+$ python setup.py
+```
+
 #### Requirements:
 
 - Python 3
-- CPLEX or CBC+Pyomo
+- CPLEX or [Pyomo](http://www.pyomo.org/) + [CBC](https://projects.coin-or.org/Cbc) 
  
-#### CPLEX 
+#### CPLEX
 
-CPLEX is cross-platform commercial optimization tool with a Python API. It is free for students and faculty at accredited institutions. To get CPLEX:
+CPLEX is fast optimization solver with a Python API. It is commercial software, but worth downloading since it is free to students and faculty at accredited institutions. To get CPLEX:
 
-1. Register for [IBM OnTheHub](https://ibm.onthehub.com/WebStore/Account/VerifyEmailDomain.aspx)
+1. Register for [IBM OnTheHub](https://ibm.onthehub.com/)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
 3. Install the CPLEX Optimization Studio.
 4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.8.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
 
-If you have problems installing CPLEX, check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
+If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
 #### CBC + Pyomo
 
-* Download COIN-OR and CBC from: https://www.coin-or.org/
-* Install Pyomo using `pip` or `conda` and then run the Pyomo installer in the command line: `pyomo install-extras`
-* If you're on Windows, `conda install -c conda-forge pyomo.extras` is a safer way to go
+If you are unable to obtain CPLEX, you can also work with an open-source solver. This requires the following steps (which you can do *before* you) 
 
-## Development Roadmap
+1. Download and install [CBC](https://github.com/coin-or/Cbc) from [Bintray](https://bintray.com/coin-or/download/Cbc)
+2. Download and install `pyomo` *and* `pyomo-extras` [(instructions)](http://www.pyomo.org/installation)
 
-- Contributing.md
-- Support for categorical variables in `ActionSet`
-- Support for rule-based such as decision lists and rule lists
+
+## Development 
+
+We're actively working to improve this package and make it more useful. If you come across bugs, have comments or suggestions, or want to help out, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
+
+#### Roadmap
+
+- `Contributing.md`
+- support for categorical variables in `ActionSet`
+- support for rule-based models such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
-- [Integration into AI360 Fairness Toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+- [integration into AI360 Fairness toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+
+----
 
 ## Reference
 
-For more about recourse or how to use these tools, check out our paper:
+For more about recourse and these tools, check out our paper:
 
 [Actionable Recourse in Linear Classification](http://www.berkustun.com/docs/actionable_recourse.pdf)
-     
+
+
 ```
 inproceedings{ustun2019recourse,
      title = {Actionable Recourse in Linear Classification},
@@ -115,7 +136,3 @@ inproceedings{ustun2019recourse,
      publisher = {ACM},
 }
 ```
-
-## Contributing
-
-We welcome any and all contributions! Please follow `CONTRIBUTING.md` for specific guidelines on how to contribute. Thank you, community :)
