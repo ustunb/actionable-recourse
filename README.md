@@ -12,7 +12,7 @@
 
 Recourse is an important element of human-facing applications of ML. In tasks such as lending or allocation of public services, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age` and `prior_arrests`, for example, should let a person who is predicted to recidivate with the ability to alter this prediction without alterning `age`.
 
-#### Package Highlights
+#### Highlights
 
 The tools in this library let you check recourse without interfering in the model development process. 
 
@@ -62,6 +62,7 @@ audit_df = auditor.audit(X = X) ## matrix of features over which we will perform
 ```
 
 ----
+
 ## Installation
 
 The latest release can be installed directly by running:
@@ -77,7 +78,7 @@ $ git clone git@github.com:ustunb/actionable-recourse.git
 $ python setup.py
 ```
 
-#### Requirements:
+### Requirements
 
 - Python 3
 - CPLEX or [Pyomo](http://www.pyomo.org/) + [CBC](https://projects.coin-or.org/Cbc) 
@@ -95,17 +96,17 @@ If you have problems installing CPLEX, please check the [CPLEX user manual](http
 
 #### CBC + Pyomo
 
-If you are unable to obtain CPLEX, you can also work with an open-source solver. This requires the following steps (which you can do *before* you) 
+If you do not want to use CPLEX, you can also work with an open-source solver. In this case, complete the following steps before you install the library:
 
 1. Download and install [CBC](https://github.com/coin-or/Cbc) from [Bintray](https://bintray.com/coin-or/download/Cbc)
 2. Download and install `pyomo` *and* `pyomo-extras` [(instructions)](http://www.pyomo.org/installation)
 
 
-## Development 
+## Development and Contributing
 
 We're actively working to improve this package and make it more useful. If you come across bugs, have comments or suggestions, or want to help out, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
 
-#### Roadmap
+### Roadmap
 
 - `Contributing.md`
 - support for categorical variables in `ActionSet`
