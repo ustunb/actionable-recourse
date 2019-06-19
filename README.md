@@ -34,11 +34,13 @@ Precise functionality includes:
 ## Usage
 
 ```
+import recourse as rs
+
 # train a classifier
 #todo: load data and train linear classifier
 
 # customize the set of actions
-A = ActionSet(X = X)
+A = rs.ActionSet(X = X)
 A['Age'].mutable = False                                 ## forces "age" to be immutable
 A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
 A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
@@ -46,14 +48,14 @@ A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a cust
 A['LoanDuration'].step_size = 6
 
 # build a flipset
-fs = Flipset(x = x, action_set = A, coefficients = w, intercept = b)
+fs = rs.Flipset(x = x, action_set = A, coefficients = w, intercept = b)
 fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
 fs.to_latex()
 fs.to_html()
 
 # Run Recourse Audit on Training Data
-auditor = RecourseAuditor(action_set, coefficients = w, intercept = b)
-audit_results = auditor.audit(X = X) ## matrix of features over which we will perform the audit.
+auditor = rs.RecourseAuditor(action_set, coefficients = w, intercept = b)
+audit_df = auditor.audit(X = X) ## matrix of features over which we will perform the audit.
 
 #todo: print feasibility
 #todo: print average cost
