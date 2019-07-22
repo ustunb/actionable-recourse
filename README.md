@@ -43,16 +43,16 @@ clf = LogisticRegression().fit(data['X_train'], data['y'])
 yhat = clf.predict(X = data['X_train'])
       
 # customize the set of actions
-A = rs.ActionSet(X = data['X'])
+A = rs.ActionSet(X = data['X'])                          ## matrix of features. ActionSet will learn default bounds and step-size.
 A['Age'].mutable = False                                 ## forces "age" to be immutable
 A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
 A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
 A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
-A['LoanDuration'].step_size = 6
+A['LoanDuration'].step_size = 6                          ## set step-size to a custom value.
 
 ## get model coefficients and align
 w, b = undo_coefficient_scaling(clf, scaler = data['scaler'])
-action_set.align(w)
+action_set.align(w)                                     ## tells `ActionSet` which directions each feature should move in to produce positive change.
 
 # Get one individual
 predicted_neg = np.flatnonzero(yhat < 1)
@@ -66,7 +66,7 @@ fs.to_html()
 
 # Run Recourse Audit on Training Data
 auditor = rs.RecourseAuditor(action_set, coefficients = w, intercept = b)
-audit_df = auditor.audit(X = X) ## matrix of features over which we will perform the audit.
+audit_df = auditor.audit(X = data['X']) ## matrix of features over which we will perform the audit.
 
 ## print feasibility and mean cost 
 print(audit_df['feasible'].mean())
