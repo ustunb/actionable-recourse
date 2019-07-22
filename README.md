@@ -58,7 +58,7 @@ action_set.align(w)                                     ## tells `ActionSet` whi
 predicted_neg = np.flatnonzero(yhat < 1)
 U = data['X'].iloc[predicted_neg].values
 
-# build a flipset
+# build a flipset for one individual
 fs = rs.Flipset(x = U[0], action_set = A, coefficients = w, intercept = b)
 fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
 fs.to_latex()
