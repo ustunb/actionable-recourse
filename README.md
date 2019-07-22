@@ -78,22 +78,14 @@ The latest release can be installed directly by running:
 $ pip install actionable-recourse
 ```
 
-You can also install from source by running:
-
-```
-$ git clone git@github.com:ustunb/actionable-recourse.git
-$ python setup.py
-```
-
 ### Requirements
 
 - Python 3
 - CPLEX or [Pyomo](http://www.pyomo.org/) + [CBC](https://projects.coin-or.org/Cbc) 
-
  
 #### CPLEX
 
-CPLEX is fast optimization solver with a Python API. It is commercial software, but worth downloading since it is free to students and faculty at accredited institutions. To get CPLEX:
+CPLEX is fast optimization solver with a Python API. It is commercial software, but free to download for students and faculty at accredited institutions. To obtain CPLEX:
 
 1. Register for [IBM OnTheHub](https://ibm.onthehub.com/)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
