@@ -35,20 +35,31 @@ Precise functionality includes:
 
 ```
 import recourse as rs
+from initialize import *
+data, scaler = load_data()
 
 # train a classifier
-#todo: load data and train linear classifier
-
+clf = LogisticRegression().fit(data['X_train'], data['y'])
+yhat = clf.predict(X = data['X_train'])
+      
 # customize the set of actions
-A = rs.ActionSet(X = X)
+A = rs.ActionSet(X = data['X'])
 A['Age'].mutable = False                                 ## forces "age" to be immutable
 A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
 A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
 A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
 A['LoanDuration'].step_size = 6
 
+## get model coefficients and align
+w, b = undo_coefficient_scaling(clf, scaler = data['scaler'])
+action_set.align(w)
+
+# Get one individual
+predicted_neg = np.flatnonzero(yhat < 1)
+U = data['X'].iloc[predicted_neg].values
+
 # build a flipset
-fs = rs.Flipset(x = x, action_set = A, coefficients = w, intercept = b)
+fs = rs.Flipset(x = U[0], action_set = A, coefficients = w, intercept = b)
 fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
 fs.to_latex()
 fs.to_html()
@@ -57,8 +68,10 @@ fs.to_html()
 auditor = rs.RecourseAuditor(action_set, coefficients = w, intercept = b)
 audit_df = auditor.audit(X = X) ## matrix of features over which we will perform the audit.
 
-#todo: print feasibility
-#todo: print average cost
+## print feasibility and mean cost 
+print(audit_df['feasible'].mean())
+print(audit_df['cost'].mean())
+
 ```
 
 ----
