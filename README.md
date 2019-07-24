@@ -35,6 +35,7 @@ They can answer questions like:
 ### Usage
 ```
 import recourse as rs
+import sys; sys.path.append('examples/paper')
 from initialize import *
 data, scaler = load_data()
 
