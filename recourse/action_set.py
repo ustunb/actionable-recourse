@@ -8,9 +8,9 @@ from scipy.interpolate import interp1d
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 
+__all__ = ['ActionSet']
 
 #### Internal Classes ####
-
 class _BoundElement(object):
     """
     immutable object to store lower and upper bounds for a single feature
