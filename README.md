@@ -8,7 +8,7 @@
 
 #### When should models provide recourse?
 
-Recourse is an important element of human-facing applications of ML. In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age` and `prior_arrests`, for example, should let a person who is predicted to recidivate with the ability to alter this prediction without alterning `age`.
+Recourse is an important element of human-facing applications of ML. In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age`, for example, should let a person who is predicted to recidivate with the ability to flip their prediction without having to alter `age`.
 
 #### Highlights
 
