@@ -8,24 +8,24 @@
 
 #### When should models provide recourse?
 
-Recourse is an important element of human-facing applications of ML. In tasks such as lending or allocation of public services, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age` and `prior_arrests`, for example, should let a person who is predicted to recidivate with the ability to alter this prediction without alterning `age`.
+Recourse is an important element of human-facing applications of ML. In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age` and `prior_arrests`, for example, should let a person who is predicted to recidivate with the ability to alter this prediction without alterning `age`.
 
 #### Highlights
 
 The tools in this library let you check recourse without interfering in model development. 
 
-They are built to answer questions like:
+They can answer questions like:
 
 - What can a person do to obtain a favorable outcome from a model?
-- How many people are able to change their prediction?
-- How difficult is it for people to change their prediction?
+- How many people can change their prediction?
+- How difficult for people to change their prediction?
 
 **Functionality**
 
-- Specify a custom set of feasible actions for each input variables to a ML model.
-- Generate a list of actionable changes to flip the prediction of a linear classifier.
-- Evaluate the *feasibility of recourse* of a linear classifier on a population of interest.
-- Measure the *difficulty of recourse* for a linear classifier on a population of interest.
+- Specify a custom set of feasible actions for each input variable of an ML model.
+- Generate actionable changes for a person to flip the prediction of a linear classifier.
+- Determine the *feasibility of recourse* of a linear classifier on a population of interest.
+- Evaluate the *difficulty of recourse* for a linear classifier on a population of interest.
 
 ----
 ### Usage
@@ -72,7 +72,7 @@ print(audit_df['cost'].mean())
 ----
 ## Installation
 
-The latest release can be installed directly by running:
+The latest release can be installed via pip by running:
 
 ```
 $ pip install actionable-recourse
@@ -105,29 +105,12 @@ If you do not want to use CPLEX, you can also work with an open-source solver. I
 
 We're actively working to improve this package and make it more useful. If you come across bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
 
-### Roadmap
-
-=======
-If you are unable to obtain CPLEX, you can also work with an open-source solver. This requires the following steps (which you can do *before* you) 
-
-1. Download and install [CBC](https://github.com/coin-or/Cbc) from [Bintray](https://bintray.com/coin-or/download/Cbc)
-2. Download and install `pyomo` *and* `pyomo-extras` [(instructions)](http://www.pyomo.org/installation)
-
-----
-
-## Development 
-
-We're actively working to improve this package and make it more useful. If you come across bugs, have comments or suggestions, or want to help out, let us know! 
-
 #### Roadmap
 
-- pip installation
-- `Contributing.md`
 - support for categorical variables in `ActionSet`
 - support for rule-based models such as decision lists and rule lists
 - [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
 - [integration into AI360 Fairness toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
-
 
 ## Reference
 
