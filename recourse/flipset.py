@@ -6,6 +6,7 @@ from recourse.builder import RecourseBuilder
 from recourse.defaults import VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES, DEFAULT_SOLVER
 
 pd.set_option('display.max_columns', 10)
+__all__ = ['Flipset']
 
 class Flipset(object):
     """

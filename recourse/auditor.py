@@ -7,6 +7,8 @@ from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 
+__all__ = ['RecourseAuditor']
+
 # todo add timer / print
 
 class RecourseAuditor(object):
