@@ -34,40 +34,55 @@ They can answer questions like:
 ----
 ### Usage
 ```
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
 import recourse as rs
-import sys; sys.path.append('examples/paper')
-from initialize import *
-data, scaler = load_data()
+
+# import data
+url = 'https://raw.githubusercontent.com/ustunb/actionable-recourse/master/examples/paper/data/credit_processed.csv'
+df = pd.read_csv(url)
+y, X = df.iloc[:, 0], df.iloc[:, 1:]
 
 # train a classifier
-clf = LogisticRegression().fit(data['X_train'], data['y'])
-yhat = clf.predict(X = data['X_train'])
-      
+clf = LogisticRegression()
+clf.fit(X, y)
+yhat = clf.predict(X)
+
 # customize the set of actions
-A = rs.ActionSet(X = data['X'])                          ## matrix of features. ActionSet will learn default bounds and step-size.
-A['Age'].mutable = False                                 ## forces "age" to be immutable
-A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
-A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
-A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
-A['LoanDuration'].step_size = 6                          ## set step-size to a custom value.
+A = rs.action_set.ActionSet(X)  ## matrix of features. ActionSet will learn default bounds and step-size.
+
+# specify immutable variables
+A['Married'].mutable = False
+
+# can only specify properties for multiple variables using a list
+A[['Age_lt_25', 'Age_in_25_to_40', 'Age_in_40_to_59', 'Age_geq_60']].mutable = False
+
+# education level
+A['EducationLevel'].step_direction = 1  ## force conditional immutability.
+A['EducationLevel'].step_size = 1  ## set step-size to a custom value.
+A['EducationLevel'].step_type = "absolute"  ## force conditional immutability.
+A['EducationLevel'].bounds = (0, 3)
+
+A['TotalMonthsOverdue'].step_size = 1  ## set step-size to a custom value.
+A['TotalMonthsOverdue'].step_type = "absolute"  ## discretize on absolute values of feature rather than percentile values
+A['TotalMonthsOverdue'].bounds = (0, 100)  ## set bounds to a custom value.
 
 ## get model coefficients and align
-w, b = undo_coefficient_scaling(clf, scaler = data['scaler'])
-action_set.align(w)                                     ## tells `ActionSet` which directions each feature should move in to produce positive change.
+A.align(clf)  ## tells `ActionSet` which directions each feature should move in to produce positive change.
 
 # Get one individual
-predicted_neg = np.flatnonzero(yhat < 1)
-U = data['X'].iloc[predicted_neg].values
+i = np.flatnonzero(yhat <= 0)[0]
 
 # build a flipset for one individual
-fs = rs.Flipset(x = U[0], action_set = A, coefficients = w, intercept = b)
+fs = rs.flipset.Flipset(x = X[i], action_set = A, clf = clf)
 fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
 fs.to_latex()
 fs.to_html()
 
 # Run Recourse Audit on Training Data
-auditor = rs.RecourseAuditor(action_set, coefficients = w, intercept = b)
-audit_df = auditor.audit(X = data['X']) ## matrix of features over which we will perform the audit.
+auditor = rs.auditor.RecourseAuditor(A, coefficients = w, intercept = b)
+audit_df = auditor.audit(X)  ## matrix of features over which we will perform the audit.
 
 ## print mean feasibility and cost of recourse
 print(audit_df['feasible'].mean())
