@@ -2,17 +2,13 @@
 
 ### [Recourse](https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse) | [Installation](https://github.com/ustunb/actionable-recourse/blob/master/README.md#installation) | [Development](https://github.com/ustunb/actionable-recourse/blob/master/README.md#development) | [Reference](https://github.com/ustunb/actionable-recourse/blob/master/README.md#reference)
 
-## Recourse?
+## Recourse
 
 *Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
 
 #### When should models provide recourse?
 
-Recourse is an important element of human-facing applications of ML. 
-
-In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. 
-
-In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age`, for example, should let a person who is predicted to recidivate with the ability to flip their prediction without having to alter `age`.
+In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. In other tasks, models should let individuals flip their predictions based on specific types of changes. For example, a recidivism prediction model that includes `age` should allow every person who is predicted to recidivate with the ability to flip their prediction without altering their `age`.
 
 #### Highlights
 
@@ -26,9 +22,9 @@ They can answer questions like:
 
 **Functionality**
 
-- Specify a custom set of feasible actions for each input variable of an ML model.
-- Generate actionable changes for a person to flip the prediction of a linear classifier.
-- Determine the *feasibility of recourse* of a linear classifier on a population of interest.
+- Customize the set of feasible action for each input variable of an ML model.
+- Produce a list of actionable changes for a person to flip the prediction of a linear classifier.
+- Estimate the *feasibility of recourse* of a linear classifier on a population of interest.
 - Evaluate the *difficulty of recourse* for a linear classifier on a population of interest.
 
 ----
@@ -105,7 +101,7 @@ $ pip install actionable-recourse
  
 #### CPLEX
 
-CPLEX is fast optimization solver with a Python API. It is commercial software, but free to download for students and faculty at accredited institutions. To obtain CPLEX:
+CPLEX is fast optimization solver with a Python API. It is commercial software, but free for students and faculty at accredited institutions. To obtain CPLEX:
 
 1. Register for [IBM OnTheHub](https://ibm.onthehub.com/)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
@@ -136,7 +132,7 @@ We're actively working to improve this package and make it more useful. If you c
 
 For more about recourse and these tools, check out our paper:
 
-[Actionable Recourse in Linear Classification](http://www.berkustun.com/docs/actionable_recourse.pdf)
+[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
 
 ```
 inproceedings{ustun2019recourse,
