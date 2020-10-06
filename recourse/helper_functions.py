@@ -73,3 +73,4 @@ def parse_classifier_args(*args, **kwargs):
     assert np.isfinite(w).all()
     assert np.isfinite(t)
     return w, t
+

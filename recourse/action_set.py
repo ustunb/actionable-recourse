@@ -5,18 +5,12 @@ from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
-# todo: change ActionElement.mutable to ActionElement.actionable
-# todo: change ActionElement.actionable to ActionElement.aligned
-# todo: change ActionElement.aligned to ActionElement.alignment_is_known
-# todo: change ActionSet.align to ActionSet.set_alignment
-
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 
-
 __all__ = ['ActionSet']
 
-#### Internal Classes ####
+#### Action Elements ####
 class _BoundElement(object):
     """
     Immutable class to store the lower and upper bounds for a feature.
@@ -182,7 +176,7 @@ class _ActionElement(object):
 
         # flip direction
         self._flip_direction = float('nan')
-        self.mutable = mutable
+        self.actionable = mutable
 
         # set bounds
         self.bounds = bounds
@@ -234,34 +228,35 @@ class _ActionElement(object):
 
 
     @property
-    def mutable(self):
+    def actionable(self):
         """:return: True iff variable can be changed."""
         return self._mutable
 
 
-    @mutable.setter
-    def mutable(self, flag):
-        assert np.isin(flag, (False, True)), 'actionable must be boolean'
+    @actionable.setter
+    def actionable(self, flag):
+        assert np.isin(flag, (False, True)), 'compatible must be boolean'
         self._mutable = bool(flag)
 
 
     @property
-    def actionable(self):
+    def compatible(self):
         """
-        :return: True if variable can be changed, and the changes would help flip the prediction of a classifier
+        :return: True if variable is actionable, and there exists a feasible actions that will flip the prediction of a classifier
         """
         if not self.aligned:
             return float('nan')
 
-        if not self.mutable:
+        if not self.actionable:
             return False
 
-        # if mutable, then check that directions OK
+        # if actionable, then check that directions OK
         sd = np.sign(self._step_direction)
         fd = np.sign(self._flip_direction)
         conflict = (fd == 0) or (fd * sd == -1)
+        aligned = not conflict
 
-        return not conflict
+        return aligned
 
 
     @property
@@ -287,6 +282,21 @@ class _ActionElement(object):
 
 
     #### bounds ####
+
+    @property
+    def bound_type(self):
+        return self._bounds.bound_type
+
+
+    @bound_type.setter
+    def bound_type(self):
+        b = self._bounds
+        if b.bound_type == 'percentile':
+            b_new = _BoundElement(bound_type = 'percentile', lb = b.qlb, ub = b.qub, values = self._values)
+        else:
+            b_new = _BoundElement(bound_type = b.bound_type, lb = b.lb, ub = b.ub, values = self._values)
+        self._bounds = b_new
+
 
     @property
     def bounds(self):
@@ -336,25 +346,11 @@ class _ActionElement(object):
         self._bounds = b_new
 
 
-    @property
-    def bound_type(self):
-        return self._bounds.bound_type
-
-
-    @bound_type.setter
-    def bound_type(self):
-        b = self._bounds
-        if b.bound_type == 'percentile':
-            b_new = _BoundElement(bound_type = 'percentile', lb = b.qlb, ub = b.qub, values = self._values)
-        else:
-            b_new = _BoundElement(bound_type = b.bound_type, lb = b.lb, ub = b.ub, values = self._values)
-        self._bounds = b_new
-
     #### alignment ####
-
     @property
     def aligned(self):
         return not np.isnan(self._flip_direction)
+
 
     @property
     def flip_direction(self):
@@ -362,6 +358,7 @@ class _ActionElement(object):
             return int(self._flip_direction)
         else:
             return float('nan')
+
 
     @flip_direction.setter
     def flip_direction(self, flip_direction):
@@ -445,7 +442,6 @@ class _ActionElement(object):
 
 
     #### kde and percentile computation ###
-
     @property
     def interpolator(self):
         if self._interpolator is None:
@@ -496,7 +492,7 @@ class _ActionElement(object):
         assert np.isfinite(x), 'x must be finite.'
         assert return_actions is False or self.aligned, 'cannot determine feasible_actions before ActionSet is aligned'
 
-        if self.mutable:
+        if self.actionable:
 
             x_new = self.grid
 
@@ -515,7 +511,7 @@ class _ActionElement(object):
 
         if return_actions:
 
-            if self.actionable:
+            if self.compatible:
                 # flip-direction must be 1 or -1
                 if self._flip_direction > 0:
                     x_new = np.extract(np.greater_equal(x_new, x), x_new)
@@ -531,40 +527,7 @@ class _ActionElement(object):
         else:
             return vals
 
-
-class _ActionSlice(object):
-    """
-    Internal class to set ActionElement properties from slices of an ActionSet
-    Using this class we can support commands like:
-
-        a = ActionSet(...)
-        a[1:2].ub = 2
-    """
-
-    def __init__(self, action_elements):
-        self._indices = {e.name: j for j, e in enumerate(action_elements)}
-        self._elements = {e.name: e for e in action_elements}
-
-
-    def __getattr__(self, name):
-        if name in ('_indices', '_elements'):
-            object.__getattr__(self, name)
-        else:
-            return [getattr(self._elements[n], name) for n, j in self._indices.items()]
-
-
-    def __setattr__(self, name, value):
-        if name in ('_indices', '_elements'):
-            object.__setattr__(self, name, value)
-        else:
-            assert hasattr(_ActionElement, name)
-            attr_values = _expand_values(value, len(self._indices))
-            for n, j in self._indices.items():
-                setattr(self._elements[n], name, attr_values[j])
-
-
-#### Wrapper Class #####
-
+#### Action Sets
 class ActionSet(object):
 
     _default_print_flag = True
@@ -572,7 +535,7 @@ class ActionSet(object):
     _default_bounds = (1, 99, 'percentile')
     _default_step_type = 'relative'
 
-    def __init__(self, X, names = None, **kwargs):
+    def __init__(self, X, names = None, y_desired = 1, **kwargs):
 
         """
         Container of ActionElement for each variable in a dataset.
@@ -603,11 +566,7 @@ class ActionSet(object):
             X = X.values
 
         # validate names
-        assert isinstance(names, list), '`names` must be a list'
-        assert all([isinstance(n, str) for n in names]), '`names` must be a list of strings'
-        assert len(names) >= 1, '`names` must contain at least 1 element'
-        assert all([len(n) > 0 for n in names]), 'elements of `names` must have at least 1 character'
-        assert len(names) == len(set(names)), 'elements of `names` must be distinct'
+        assert _check_variable_names(names)
 
         # validate X
         xdim = X.shape
@@ -627,18 +586,22 @@ class ActionSet(object):
         indices = {}
         elements = {}
         for j, n in enumerate(names):
+            indices[n] = j
             variable_type = _determine_variable_type(values = X[:, j])
             if variable_type == bool:
-                bounds = custom_bounds.get(n, (0, 1, 'absolute'))
-            elif variable_type in (int, float):
-                bounds = custom_bounds.get(n, default_bounds)
-
-            elements[n] = _ActionElement(name = n, values = X[:, j], step_type = default_step_type, variable_type = variable_type, bounds = bounds)
-            indices[n] = j
+                elements[n] = _ActionElement(name = n, values = X[:, j], step_type = 'absolute', step_size = 1, variable_type = bool, bounds = custom_bounds.get(n, (0, 1, 'absolute')))
+            elif variable_type == int:
+                elements[n] = _ActionElement(name = n, values = X[:, j], step_type = default_step_type, variable_type = int, bounds = custom_bounds.get(n, default_bounds))
+            elif variable_type == float:
+                elements[n] = _ActionElement(name = n, values = X[:, j], step_type = default_step_type, variable_type = float, bounds = custom_bounds.get(n, default_bounds))
 
         self._names = [str(n) for n in names]
         self._indices = indices
         self._elements = elements
+
+        # set y_desired
+        assert y_desired in (-1, 0, 1), "y_desired must be +1 or -1"
+        self._y_desired = 1 if y_desired > 0 else -1
         assert self._check_rep()
 
 
@@ -658,7 +621,12 @@ class ActionSet(object):
         elif isinstance(index, (int, np.int_)):
             return self._elements[self._names[index]]
         elif isinstance(index, list):
-            names = [self._names[j] if isinstance(j, (int, np.int_)) else j for j in index]
+            if isinstance(index[0], int):
+                names = [self._names[j] for j in index]
+            elif isinstance(index[0], bool):
+                names = [self._names[j] for j, v in enumerate(index) if v]
+            elif isinstance(index[0], str):
+                names = index
             return _ActionSlice([self._elements[n] for n in names])
         elif isinstance(index, np.ndarray):
             names = np.array(self._names)[index].tolist()
@@ -676,14 +644,16 @@ class ActionSet(object):
 
 
     def __getattribute__(self, name):
-        if name[0] == '_' or name == 'aligned' or not hasattr(_ActionElement, name):
+        if name[0] == '_' or name in ('alignment_known') or not hasattr(_ActionElement, name):
             return object.__getattribute__(self, name)
         else:
             return [getattr(self._elements[n], name) for n, j in self._indices.items()]
 
 
     def __setattr__(self, name, value):
-        if hasattr(self, '_elements'):
+        if name in ('y_desired', '_y_desired'):
+            object.__setattr__(self, name, value)
+        elif hasattr(self, '_elements'):
             assert hasattr(_ActionElement, name)
             attr_values = _expand_values(value, len(self))
             for n, j in self._indices.items():
@@ -692,12 +662,38 @@ class ActionSet(object):
             object.__setattr__(self, name, value)
 
 
-    ### validation ###
+    @property
+    def y_desired(self):
+        """
+        :return: value of the desired outcome
+        If y_desired = +1 (default value), then we consider points such that h(x) = -1, and search for actions a such that h(x+a) = +1
+        If y_desired = -1 (or y_desired = 0), then we consider points such that h(x) = +1, and look for actions a such that h(x+a) = -1
+        """
+        return int(self._y_desired)
 
+
+    @y_desired.setter
+    def y_desired(self, y):
+        """
+        value of the desired outcome
+        If y_desired = +1 (default value), then we consider points such that h(x) = -1, and search for actions a such that h(x+a) = +1
+        If y_desired = -1 (or y_desired = 0), then we consider points such that h(x) = +1, and look for actions a such that h(x+a) = -1
+        :param y: integer value: either +1 or 0/-1. If user inputs y_desired = 0, we will convert this value to y_desired = -1.
+        :return:
+        """
+        assert y in (-1, 0, 1), 'y_desired must be +1 or -1'
+        y = int(y)
+        if y != self._y_desired:
+            self._y_desired = 1 if y > 0 else -1
+            # if classifier was aligned, then re-set_alignment the classifier
+            if self.alignment_known:
+                for n, j in self._indices.items():
+                    self._elements[n].flip_direction = -self._elements[n].flip_direction
+
+    ### validation ###
     @property
     def check_flag(self):
         return bool(self._check_flag)
-
 
     @check_flag.setter
     def check_flag(self, flag):
@@ -716,7 +712,6 @@ class ActionSet(object):
 
 
     ### printing ###
-
     @property
     def print_flag(self):
         return bool(self._print_flag)
@@ -745,8 +740,8 @@ class ActionSet(object):
         t = PrettyTable()
         t.add_column("name", self.name, align = "r")
         t.add_column("variable type", self.variable_type, align = "r")
-        t.add_column("mutable", self.mutable, align = "r") #todo change
-        t.add_column("actionable", self.actionable, align = "r") #todo change
+        t.add_column("actionable", self.actionable, align = "r")
+        t.add_column("compatible", self.compatible, align = "r")
         t.add_column("step direction", self.step_direction, align = "r")
         t.add_column("flip direction", self.flip_direction, align = "r")
         t.add_column("grid size", self.size, align = "r")
@@ -768,8 +763,8 @@ class ActionSet(object):
                            'ub': self.ub,
                            'grid_size': self.size,
                            'step_size': self.step_size,
-                           'mutable': self.mutable, #todo change
-                           'actionable': self.actionable, #todo change
+                           'actionable': self.actionable,
+                           'compatible': self.compatible,
                            'step_direction': self.step_direction,
                            'flip_direction': self.flip_direction})
         return df
@@ -784,7 +779,7 @@ class ActionSet(object):
         tex_real_str = '$\mathbb{R}$'
 
         df = self.df
-        df = df.drop(['actionable', 'flip_direction'], axis = 1)
+        df = df.drop(['compatible', 'flip_direction'], axis = 1)
 
         new_types = [tex_real_str] * len(df)
         new_ub = ['%1.1f' % v for v in df['ub'].values]
@@ -801,19 +796,19 @@ class ActionSet(object):
         df['ub'] = new_ub
         df['lb'] = new_lb
 
-        df['actionable'] = df['mutable'].map({False: 'no', True: 'yes'}) #todo change
-        up_idx = df['mutable'] & df['step_direction'] == 1
-        dn_idx = df['mutable'] & df['step_direction'] == -1
-        df.loc[up_idx, 'actionable'] = 'only increases'
-        df.loc[dn_idx, 'actionable'] = 'only decreases'
+        df['compatible'] = df['actionable'].map({False: 'no', True: 'yes'}) #todo change
+        up_idx = df['actionable'] & df['step_direction'] == 1
+        dn_idx = df['actionable'] & df['step_direction'] == -1
+        df.loc[up_idx, 'compatible'] = 'only increases'
+        df.loc[dn_idx, 'compatible'] = 'only decreases'
 
-        df = df.drop(['mutable', 'step_direction'], axis = 1)
+        df = df.drop(['actionable', 'step_direction'], axis = 1)
 
         df = df.rename(columns = {
             'name': 'Name',
             'grid_size': '\# Actions',
             'variable_type': 'Type',
-            'actionable': 'Mutability',
+            'compatible': 'Mutability',
             'lb': 'LB',
             'ub': 'UB',
             })
@@ -823,24 +818,22 @@ class ActionSet(object):
 
     #### alignment ####
 
-    def align(self, *args, **kwargs):
+    def set_alignment(self, *args, **kwargs):
         """
-        aligns action set to a given linear classifier
-        aligning the actions for variable j, specifies if variable j must increase or decrease to flip prediction
-        if the coefficient for variable j is positive, then actions that positive variable j will flip prediction
+        uses a classifier to determine the "alignment" of actions on each variable
+        if the coefficient for variable j is positive, then actions that increase variable j will flip prediction
         if the coefficient for variable j is negative, then actions that decrease variable j will flip prediction
         :param scikit-learn classifier object, or vector of coefficients
         :return:None
         """
         coefs, _ = parse_classifier_args(*args, **kwargs)
         assert len(coefs) == len(self)
-        flips = np.sign(coefs)
+        flips = np.sign(coefs) if self._y_desired > 0 else -np.sign(coefs)
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
 
-
     @property
-    def aligned(self):
+    def alignment_known(self):
         """
         :return: True if action set has been aligned to a model
         """
@@ -853,7 +846,7 @@ class ActionSet(object):
         :param x: list or np.array containing vector of feature values (must have same length as ActionSet)
         :param action_grid: set to True for returned grid to reflect changes to x
         :param return_percentiles: set to True to include percentiles in return values
-        :param return_immutable: set to True to restrict return values to only actionable features
+        :param return_immutable: set to True to restrict return values to only compatible features
         :return: dictionary of the form {name: feasible_values}
         """
         assert isinstance(x, (list, np.ndarray)), 'feature values should be list or np.ndarray'
@@ -863,7 +856,7 @@ class ActionSet(object):
         if return_immutable:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
         else:
-            output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].actionable}
+            output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].compatible}
 
         if return_percentiles:
             return {n: v[0] for n, v in output.items()}, {n: v[1] for n, v in output.items()}
@@ -871,7 +864,130 @@ class ActionSet(object):
         return output
 
 
+#### Constraints
+class _ActionConstraints(object):
+    """
+    Class to represent and manipulate constraints between variables
+    """
+
+    def __init__(self, names):
+        self._names = names
+        self._n_variables = len(names)
+        self._constraints = {
+            'group_limit_constraints': [], #between 1 to 2 of (x1, x2, x3) can be on <-> 1 <= u1 + u2 + u3 <= 2
+            }
+
+
+    def __len__(self):
+        return len(self._constraints)
+
+
+    def add_group_limit_constraint(self, names, lb = 0, ub = 1):
+        """
+        :param names:
+        :param lb:
+        :param ub:
+        :return:
+        """
+        # check bounds
+        assert isinstance(lb, int), 'lb must be integer-valued'
+        assert isinstance(ub, int), 'ub must be integer-valued'
+        assert 2 <= len(names) <= self._n_variables, 'must have between 2 to %d names' % self._n_variables
+        assert 0 <= lb <= self._n_variables, 'lb must be between 0 to %d' % self._n_variables
+        assert 0 <= ub <= self._n_variables, 'ub must be between 0 to %d' % self._n_variables
+        assert lb <= ub
+
+        # check names
+        assert len(names) == len(list(set(names))), 'names must be unique'
+        indices = [self._names.index(n) for n in names]
+
+        # sort names and indices from lowest to highest
+        sort_idx = np.argsort(indices)
+        names = [names[i] for i in sort_idx]
+        indices = [indices[i] for i in sort_idx]
+
+        # add to constraint
+        self._constraints['group_limit_constraints'].add({'names': names, 'indices':indices, ub: ub, lb: lb})
+
+
+    def add_logical_constraint(self, if_names, then_names, complement_if = None, complement_then = None):
+        """
+        :param if_names:
+        :param then_names:
+        :param complement_if:
+        :param complement_then:
+        :return:
+        """
+        raise NotImplementedError()
+
+
+#### Slicing ####
+class _ActionSlice(object):
+    """
+    Class to set ActionElement properties by slicing.
+    This class allows us to support commands like:
+        a = ActionSet(...)
+        a[1:2].ub = 2
+    """
+
+    def __init__(self, action_elements):
+        self._indices = {e.name: j for j, e in enumerate(action_elements)}
+        self._elements = {e.name: e for e in action_elements}
+
+    def __getattr__(self, name):
+        if name in ('_indices', '_elements'):
+            object.__getattr__(self, name)
+        else:
+            return [getattr(self._elements[n], name) for n, j in self._indices.items()]
+
+    def __setattr__(self, name, value):
+        if name in ('_indices', '_elements'):
+            object.__setattr__(self, name, value)
+        else:
+            assert hasattr(_ActionElement, name)
+            attr_values = _expand_values(value, len(self._indices))
+            for n, j in self._indices.items():
+                setattr(self._elements[n], name, attr_values[j])
+
+    def __len__(self):
+        return len(self._indices)
+
+    def __str__(self):
+        return self.tabulate()
+
+    def __repr__(self):
+        return self.tabulate()
+
+    def tabulate(self):
+        t = PrettyTable()
+        t.add_column("name", self.name, align = "r")
+        t.add_column("variable type", self.variable_type, align = "r")
+        t.add_column("actionable", self.actionable, align = "r") #todo change
+        t.add_column("compatible", self.compatible, align = "r") #todo change
+        t.add_column("step direction", self.step_direction, align = "r")
+        t.add_column("flip direction", self.flip_direction, align = "r")
+        t.add_column("grid size", self.size, align = "r")
+        t.add_column("step type", self.step_type, align = "r")
+        t.add_column("step size", self.step_size, align = "r")
+        t.add_column("lb", self.lb, align = "r")
+        t.add_column("ub", self.ub, align = "r")
+        return str(t)
+
+
 ### Helper Functions
+def _check_variable_names(names):
+    """
+    checks variable names
+    :param names: list of names for each feature in a dataset.
+    :return:
+    """
+    assert isinstance(names, list), '`names` must be a list'
+    assert all([isinstance(n, str) for n in names]), '`names` must be a list of strings'
+    assert len(names) >= 1, '`names` must contain at least 1 element'
+    assert all([len(n) > 0 for n in names]), 'elements of `names` must have at least 1 character'
+    assert len(names) == len(set(names)), 'elements of `names` must be distinct'
+    return True
+
 
 def _determine_variable_type(values, name=None):
     for v in values:
@@ -879,7 +995,7 @@ def _determine_variable_type(values, name=None):
             raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
     integer_valued = np.equal(np.mod(values, 1), 0).all()
     if integer_valued:
-        if np.isin(values, (0,1)).all():
+        if np.isin(values, (0, 1)).all():
             return bool
         else:
             return int
