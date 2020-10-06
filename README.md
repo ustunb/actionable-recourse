@@ -1,22 +1,24 @@
-`actionable-recourse` is a python library to check recourse in linear classification models. 
+`actionable-recourse` is a python library for recourse verification and reporting. 
 
 ### [Recourse](https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse) | [Installation](https://github.com/ustunb/actionable-recourse/blob/master/README.md#installation) | [Development](https://github.com/ustunb/actionable-recourse/blob/master/README.md#development) | [Reference](https://github.com/ustunb/actionable-recourse/blob/master/README.md#reference)
 
 ## Recourse?
 
-*Recourse* is the ability to flip the prediction of a ML model by changing *actionable* input variables (e.g., `income` instead of `age`).
+In the context of machine learning, *recourse* describes the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables (e.g., `income` as opposed to `age`).
 
-#### When should models provide recourse?
+### When should machine leanring models provide recourse?
 
-Recourse is an important element of human-facing applications of ML. 
+Recourse is an important element of procedural fairness in machine learning. 
 
-In tasks such as lending, ML models should provide all individuals with an actionable way to change their prediction. 
+In tasks like lending, machine learning systems should provide all individuals with an actionable way to change their prediction. 
 
-In other tasks, models should let individuals flip their predictions based on specific types of changes. A recidivism prediction model that includes `age`, for example, should let a person who is predicted to recidivate with the ability to flip their prediction without having to alter `age`.
+In other tasks, models should let individuals flip their predictions based on specific types of changes. 
 
-#### Highlights
+For example, a recidivism prediction model that includes age should allow every person who is predicted to recidivate with the ability to flip their prediction without altering their age.
 
-The tools in this library let you check recourse without interfering in model development. 
+### Highlights
+
+This library provides tools for recourse verification and reporting. The tools are designed to let users check recourse without interfering in model development.
 
 They can answer questions like:
 
@@ -24,7 +26,25 @@ They can answer questions like:
 - How many people can change their prediction?
 - How difficult for people to change their prediction?
 
-**Functionality**
+Functionality
+
+- Customize the set of feasible action for each input variable of an ML model.
+- Produce a list of actionable changes for a person to flip the prediction of a linear classifier.
+- Estimate the feasibility of recourse of a linear classifier on a population of interest.
+- Evaluate the difficulty of recourse for a linear classifier on a population of interest.
+
+
+#### When should models provide recourse?
+
+This package contains tools to let you check recourse without interfering in model development. 
+
+These tools are designed to answer questions such as:
+
+- What can a person do to obtain a favorable outcome from a model?
+- How many people will be able change their prediction?
+- How difficult for people to change their prediction?
+
+Specific functionality includes:
 
 - Specify a custom set of feasible actions for each input variable of an ML model.
 - Generate actionable changes for a person to flip the prediction of a linear classifier.
@@ -32,42 +52,58 @@ They can answer questions like:
 - Evaluate the *difficulty of recourse* for a linear classifier on a population of interest.
 
 ----
+
 ### Usage
 ```
+import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
 import recourse as rs
-import sys; sys.path.append('examples/paper')
-from initialize import *
-data, scaler = load_data()
+
+# import data
+url = 'https://raw.githubusercontent.com/ustunb/actionable-recourse/master/examples/paper/data/credit_processed.csv'
+df = pd.read_csv(url)
+y, X = df.iloc[:, 0], df.iloc[:, 1:]
 
 # train a classifier
-clf = LogisticRegression().fit(data['X_train'], data['y'])
-yhat = clf.predict(X = data['X_train'])
-      
+clf = LogisticRegression(max_iter = 1000)
+clf.fit(X, y)
+yhat = clf.predict(X)
+
 # customize the set of actions
-A = rs.ActionSet(X = data['X'])                          ## matrix of features. ActionSet will learn default bounds and step-size.
-A['Age'].mutable = False                                 ## forces "age" to be immutable
-A['CriticalAccountOrLoansElsewhere'].step_direction = -1 ## force conditional immutability.
-A['LoanDuration'].step_type ="absolute"                  ## discretize on absolute values of feature rather than percentile values
-A['LoanDuration'].bounds = (1, 100)                      ## set bounds to a custom value.
-A['LoanDuration'].step_size = 6                          ## set step-size to a custom value.
+A = rs.ActionSet(X)  ## matrix of features. ActionSet will set bounds and step sizes by default
+
+# specify immutable variables
+A['Married'].mutable = False
+
+# can only specify properties for multiple variables using a list
+A[['Age_lt_25', 'Age_in_25_to_40', 'Age_in_40_to_59', 'Age_geq_60']].mutable = False
+
+# education level
+A['EducationLevel'].step_direction = 1  ## force conditional immutability.
+A['EducationLevel'].step_size = 1  ## set step-size to a custom value.
+A['EducationLevel'].step_type = "absolute"  ## force conditional immutability.
+A['EducationLevel'].bounds = (0, 3)
+
+A['TotalMonthsOverdue'].step_size = 1  ## set step-size to a custom value.
+A['TotalMonthsOverdue'].step_type = "absolute"  ## discretize on absolute values of feature rather than percentile values
+A['TotalMonthsOverdue'].bounds = (0, 100)  ## set bounds to a custom value.
 
 ## get model coefficients and align
-w, b = undo_coefficient_scaling(clf, scaler = data['scaler'])
-action_set.align(w)                                     ## tells `ActionSet` which directions each feature should move in to produce positive change.
+A.align(clf)  ## tells `ActionSet` which directions each feature should move in to produce positive change.
 
 # Get one individual
-predicted_neg = np.flatnonzero(yhat < 1)
-U = data['X'].iloc[predicted_neg].values
+i = np.flatnonzero(yhat <= 0).astype(int)[0]
 
 # build a flipset for one individual
-fs = rs.Flipset(x = U[0], action_set = A, coefficients = w, intercept = b)
+fs = rs.Flipset(x = X.values[i], action_set = A, clf = clf)
 fs.populate(enumeration_type = 'distinct_subsets', total_items = 10)
 fs.to_latex()
 fs.to_html()
 
 # Run Recourse Audit on Training Data
-auditor = rs.RecourseAuditor(action_set, coefficients = w, intercept = b)
-audit_df = auditor.audit(X = data['X']) ## matrix of features over which we will perform the audit.
+auditor = rs.RecourseAuditor(A, coefficients = clf.coef_, intercept = clf.intercept_)
+audit_df = auditor.audit(X)  ## matrix of features over which we will perform the audit.
 
 ## print mean feasibility and cost of recourse
 print(audit_df['feasible'].mean())
@@ -86,25 +122,19 @@ $ pip install actionable-recourse
 ### Requirements
 
 - Python 3
-- CPLEX or [Pyomo](http://www.pyomo.org/) + [CBC](https://projects.coin-or.org/Cbc) 
- 
+- Python-MIP or CPLEX  
+
 #### CPLEX
 
 CPLEX is fast optimization solver with a Python API. It is commercial software, but free to download for students and faculty at accredited institutions. To obtain CPLEX:
 
-1. Register for [IBM OnTheHub](https://ibm.onthehub.com/)
-2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://ibm.onthehub.com/WebStore/ProductSearchOfferingList.aspx?srch=CPLEX)
+1. Register for [IBM Academic Initiative](https://www.ibm.com/academic/technology/data-science)
+2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://www-03.ibm.com/isc/esd/dswdown/searchPartNumber.wss?partNumber=CJ6BPML)
 3. Install the CPLEX Optimization Studio.
-4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.8.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
+4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
 
 If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
 
-#### CBC + Pyomo
-
-If you do not want to use CPLEX, you can also work with an open-source solver. In this case, complete the following steps before you install the library:
-
-1. Download and install [CBC](https://github.com/coin-or/Cbc) from [Bintray](https://bintray.com/coin-or/download/Cbc)
-2. Download and install `pyomo` *and* `pyomo-extras` [(instructions)](http://www.pyomo.org/installation)
 
 ## Contributing
 
