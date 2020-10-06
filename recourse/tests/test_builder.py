@@ -6,7 +6,7 @@ from recourse.tests.fixtures import *
 # variable types:       all binary, mix
 # # of variables in w:  1, >1
 # recourse:             exists, does not exist
-# action_set:           all actionable, all conditionally actionable, all immutable, mix
+# action_set:           all compatible, all conditionally compatible, all immutable, mix
 
 # fit
 # populate
@@ -37,7 +37,7 @@ def test_rb_fit(data, recourse_builder, features):
 
 def test_empty_fit(data, features, action_set, coefficients, classifier, recourse_builder):
     names = data['X'].columns.tolist()
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     direction = np.sign(coefficients)
     ## force everything to be the opposite direction.
     for n, d in zip(names, direction):

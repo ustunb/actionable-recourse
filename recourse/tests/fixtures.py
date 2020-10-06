@@ -68,7 +68,7 @@ def threshold(request, scores):
     return scores.quantile(request.param) ## or you can set a score-threshold, like .8
 
 
-@pytest.fixture(params = ['mutable', 'immutable'])
+@pytest.fixture(params = ['actionable', 'immutable'])
 def action_set(request, data):
     """Generate an action_set for German data."""
     # setup action_set
@@ -76,7 +76,7 @@ def action_set(request, data):
     action_set = ActionSet(X = data['X'])
     if request.param == 'immutable' and data['data_name'] == 'german':
         immutable_attributes = ['Age', 'Single', 'JobClassIsSkilled', 'ForeignWorker', 'OwnsHouse', 'RentsHouse']
-        action_set[immutable_attributes].mutable = False
+        action_set[immutable_attributes].actionable = False
         action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
         action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 
@@ -97,7 +97,7 @@ def features(request, data, classifier):
 
 @pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
 def recourse_builder(request, classifier, action_set):
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = request.param,
                          action_set = action_set,
                          clf = classifier)
@@ -119,7 +119,7 @@ def flipset(request, classifier, action_set, denied_individual):
 
 @pytest.fixture
 def recourse_builder_cpx(classifier, action_set):
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = _SOLVER_TYPE_CPX,
                          action_set = action_set,
                          clf = classifier)
@@ -129,7 +129,7 @@ def recourse_builder_cpx(classifier, action_set):
 
 @pytest.fixture
 def recourse_builder_cbc(classifier, action_set):
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = _SOLVER_TYPE_CBC,
                          action_set = action_set,
                          clf = classifier)
