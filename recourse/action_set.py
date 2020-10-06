@@ -17,7 +17,7 @@ class _BoundElement(object):
     object is kept immutable and reproduced in order to not store values
     """
 
-    _valid_variable_types = {int, float}
+    _valid_variable_types = {bool, int, float}
     _valid_bound_types = {'absolute', 'percentile'}
     _valid_bound_codes = {'a': 'absolute', 'p': 'percentile'}
 
@@ -42,26 +42,24 @@ class _BoundElement(object):
                         {int, float}
         """
 
-        # set bound type
-        assert isinstance(bound_type, str)
-        if bound_type in self._valid_bound_codes:
-            bound_type = self._valid_bound_codes[bound_type]
-        else:
-            assert bound_type in self._valid_bound_types
-        self._bound_type = str(bound_type)
-
         # set variable type
         if variable_type is None:
             assert values is not None
             variable_type = _determine_variable_type(values)
         else:
             assert variable_type in self._valid_variable_types
-
         self._variable_type = variable_type
 
+        # set bound type
+        assert isinstance(bound_type, str)
+        if bound_type in self._valid_bound_codes:
+            bound_type = self._valid_bound_codes[bound_type]
+        else:
+            assert bound_type in self._valid_bound_types
+
+        self._bound_type = str(bound_type)
 
         if bound_type == 'percentile':
-
             assert values is not None
             values = np.array(values).flatten()
 
@@ -76,8 +74,8 @@ class _BoundElement(object):
             lb = np.percentile(values, lb)
             ub = np.percentile(values, ub)
 
-        if bound_type == 'absolute':
 
+        if bound_type == 'absolute':
             if lb is None:
                 assert values is not None
                 lb = np.min(values)
@@ -142,17 +140,17 @@ class _BoundElement(object):
 
 class _ActionElement(object):
     """
-    Internal class to store the properties of actions in each dimension. Used by ActionSet.
+    Internal class to represent and manipulate actions for one feature. An ActionSet is a set of ActionElements.
     """
 
     _default_check_flag = False
     _valid_step_types = {'relative', 'absolute'}
-    _valid_variable_types = {int, float}
+    _valid_variable_types = {bool, int, float}
 
 
     def __init__(self, name, values, bounds = None, variable_type = None, mutable = True, step_type = 'relative', step_direction = 0, step_size = 0.01):
         """
-        Represent and manipulate feasible actions for a single feature
+        Represent and manipulate feasible actions for one feature
 
         :param name: name of the variable (at least 1 character)
         :param values: values of the variable (must be non-empty, non-nan, finite)
@@ -412,6 +410,7 @@ class _ActionElement(object):
         try:
             grid = np.arange(start, stop + step, step)
         except Exception:
+            from dev.debug import ipsh
             ipsh()
 
         # cast grid
@@ -626,10 +625,13 @@ class ActionSet(object):
         indices = {}
         elements = {}
         for j, n in enumerate(names):
-            elements[n] = _ActionElement(name = n,
-                                         values = X[:, j],
-                                         step_type = default_step_type,
-                                         bounds = custom_bounds.get(n, default_bounds))
+            variable_type = _determine_variable_type(values = X[:, j])
+            if variable_type == bool:
+                bounds = custom_bounds.get(n, (0, 1, 'absolute'))
+            elif variable_type in (int, float):
+                bounds = custom_bounds.get(n, default_bounds)
+
+            elements[n] = _ActionElement(name = n, values = X[:, j], step_type = default_step_type, variable_type = variable_type, bounds = bounds)
             indices[n] = j
 
         self._names = [str(n) for n in names]
@@ -876,7 +878,10 @@ def _determine_variable_type(values, name=None):
             raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
     integer_valued = np.equal(np.mod(values, 1), 0).all()
     if integer_valued:
-        return int
+        if np.isin(values, (0,1)).all():
+            return bool
+        else:
+            return int
     else:
         return float
 
