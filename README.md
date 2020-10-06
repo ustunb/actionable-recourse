@@ -6,19 +6,17 @@
 
 In the context of machine learning, *recourse* describes the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables (e.g., `income` as opposed to `age`).
 
-### When should machine leanring models provide recourse?
+### When should machine learning system provide recourse?
 
-Recourse is an important element of procedural fairness in machine learning. 
+Recourse is an essential aspect of procedural fairness in machine learning. 
 
 In tasks like lending, machine learning systems should provide all individuals with an actionable way to change their prediction. 
 
-In other tasks, models should let individuals flip their predictions based on specific types of changes. 
-
-For example, a recidivism prediction model that includes age should allow every person who is predicted to recidivate with the ability to flip their prediction without altering their age.
+In other tasks, models should allow individuals to change their predictions based on specific types of changes. For example, a recidivism prediction model that includes age should allow every person who is predicted to recidivate with the ability to flip their prediction without altering their age.
 
 ### Highlights
 
-This library provides tools for recourse verification and reporting. The tools are designed to let users check recourse without interfering in model development.
+This library provides tools for recourse verification and reporting . The tools are designed to let users check recourse without interfering in model development.
 
 They can answer questions like:
 
@@ -33,23 +31,6 @@ Functionality
 - Estimate the feasibility of recourse of a linear classifier on a population of interest.
 - Evaluate the difficulty of recourse for a linear classifier on a population of interest.
 
-
-#### When should models provide recourse?
-
-This package contains tools to let you check recourse without interfering in model development. 
-
-These tools are designed to answer questions such as:
-
-- What can a person do to obtain a favorable outcome from a model?
-- How many people will be able change their prediction?
-- How difficult for people to change their prediction?
-
-Specific functionality includes:
-
-- Specify a custom set of feasible actions for each input variable of an ML model.
-- Generate actionable changes for a person to flip the prediction of a linear classifier.
-- Determine the *feasibility of recourse* of a linear classifier on a population of interest.
-- Evaluate the *difficulty of recourse* for a linear classifier on a population of interest.
 
 ----
 
