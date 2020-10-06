@@ -647,14 +647,6 @@ class ActionSet(object):
         return (self._elements[n] for n in self._names)
 
 
-    def _index_iterator(self):
-        return self._indices.items()
-
-
-    def _index_iterator_actionable(self):
-        return ((n, j) for n, j in self._indices.items() if self._elements[n].actionable)
-
-
     def __getitem__(self, index):
 
         if isinstance(index, str):
