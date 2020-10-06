@@ -830,9 +830,12 @@ class ActionSet(object):
 
     def align(self, *args, **kwargs):
         """
-        adjusts direction of recourse for each element in action set
-        :param clf: scikit-learn classifier or vector of coefficients
-        :return:
+        aligns action set to a given linear classifier
+        aligning the actions for variable j, specifies if variable j must increase or decrease to flip prediction
+        if the coefficient for variable j is positive, then actions that positive variable j will flip prediction
+        if the coefficient for variable j is negative, then actions that decrease variable j will flip prediction
+        :param scikit-learn classifier object, or vector of coefficients
+        :return:None
         """
         coefs, _ = parse_classifier_args(*args, **kwargs)
         assert len(coefs) == len(self)
