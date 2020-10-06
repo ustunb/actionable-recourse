@@ -483,17 +483,16 @@ class _ActionElement(object):
         returns an array of feasible values or actions for this feature from a specific point x
         array of feasible values will always include x (or an action = 0.0)
 
-        :param x: point
+        :param x: feature vector
 
-        :param return_actions: if False,the array of values will contain new feasible points x_new
-                               if True, the array of values will contain the changes between x to x_new (a = x_new - x);
+        :param return_actions: if True, returns an array of actions a where x_new = x + a
+                               if False, returns an array of new values x_new
 
         :param return_percentiles: if True, then percentiles of all new points will also be included
 
         :return:
 
         """
-
         assert np.isfinite(x), 'x must be finite.'
         assert return_actions is False or self.aligned, 'cannot determine feasible_actions before ActionSet is aligned'
 
@@ -671,7 +670,6 @@ class ActionSet(object):
 
 
     def __setitem__(self, name, e):
-
         assert isinstance(e, _ActionElement), 'ActionSet can only contain ActionElements'
         assert name in self._names, 'no variable with name %s in ActionSet'
         self._elements.update({name: e})
@@ -747,8 +745,8 @@ class ActionSet(object):
         t = PrettyTable()
         t.add_column("name", self.name, align = "r")
         t.add_column("variable type", self.variable_type, align = "r")
-        t.add_column("mutable", self.mutable, align = "r")
-        t.add_column("actionable", self.actionable, align = "r")
+        t.add_column("mutable", self.mutable, align = "r") #todo change
+        t.add_column("actionable", self.actionable, align = "r") #todo change
         t.add_column("step direction", self.step_direction, align = "r")
         t.add_column("flip direction", self.flip_direction, align = "r")
         t.add_column("grid size", self.size, align = "r")
@@ -770,8 +768,8 @@ class ActionSet(object):
                            'ub': self.ub,
                            'grid_size': self.size,
                            'step_size': self.step_size,
-                           'mutable': self.mutable,
-                           'actionable': self.actionable,
+                           'mutable': self.mutable, #todo change
+                           'actionable': self.actionable, #todo change
                            'step_direction': self.step_direction,
                            'flip_direction': self.flip_direction})
         return df
@@ -803,7 +801,7 @@ class ActionSet(object):
         df['ub'] = new_ub
         df['lb'] = new_lb
 
-        df['actionable'] = df['mutable'].map({False: 'no', True: 'yes'})
+        df['actionable'] = df['mutable'].map({False: 'no', True: 'yes'}) #todo change
         up_idx = df['mutable'] & df['step_direction'] == 1
         dn_idx = df['mutable'] & df['step_direction'] == -1
         df.loc[up_idx, 'actionable'] = 'only increases'
