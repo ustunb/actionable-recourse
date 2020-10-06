@@ -5,16 +5,21 @@ from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
+# todo: change ActionElement.mutable to ActionElement.actionable
+# todo: change ActionElement.actionable to ActionElement.aligned
+# todo: change ActionElement.aligned to ActionElement.alignment_is_known
+# todo: change ActionSet.align to ActionSet.set_alignment
+
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
+
 
 __all__ = ['ActionSet']
 
 #### Internal Classes ####
 class _BoundElement(object):
     """
-    immutable object to store lower and upper bounds for a single feature
-    object is kept immutable and reproduced in order to not store values
+    Immutable class to store the lower and upper bounds for a feature.
     """
 
     _valid_variable_types = {bool, int, float}
@@ -140,7 +145,8 @@ class _BoundElement(object):
 
 class _ActionElement(object):
     """
-    Internal class to represent and manipulate actions for one feature. An ActionSet is a set of ActionElements.
+    Immutable class to store the lower and upper bounds for a feature.
+    ActionSet = Collection of ActionElements for each feature
     """
 
     _default_check_flag = False
@@ -157,7 +163,7 @@ class _ActionElement(object):
         :param bounds: bounds (must be a tuple of the form (lb, ub) or (lb, ub, bound_type) where bound_type is a valid bound type
         :param variable_type: 'int' / 'float' / set to None (default) to determine automatically from values
         :param step_direction: +1 or -1 or variable can only increase or decrease
-        :param immutable: boolean to represent whether or not the variable can be changed (True by default)
+        :param mutable: True if the variable can be changed
         """
 
         # set name (immutable)
@@ -241,9 +247,11 @@ class _ActionElement(object):
 
     @property
     def actionable(self):
-
+        """
+        :return: True if variable can be changed, and the changes would help flip the prediction of a classifier
+        """
         if not self.aligned:
-            return self.mutable
+            return float('nan')
 
         if not self.mutable:
             return False
@@ -258,13 +266,12 @@ class _ActionElement(object):
 
     @property
     def variable_type(self):
-        """:return: True iff variable can be changed."""
+        """:return: variable type."""
         return self._variable_type
 
 
     @variable_type.setter
     def variable_type(self, variable_type):
-        """:return: True iff variable can be changed."""
         if variable_type is None:
             self._variable_type = _determine_variable_type(self._values, self._name)
         else:
@@ -343,6 +350,23 @@ class _ActionElement(object):
             b_new = _BoundElement(bound_type = b.bound_type, lb = b.lb, ub = b.ub, values = self._values)
         self._bounds = b_new
 
+    #### alignment ####
+
+    @property
+    def aligned(self):
+        return not np.isnan(self._flip_direction)
+
+    @property
+    def flip_direction(self):
+        if self.aligned:
+            return int(self._flip_direction)
+        else:
+            return float('nan')
+
+    @flip_direction.setter
+    def flip_direction(self, flip_direction):
+        assert np.isfinite(flip_direction), "flip_direction must be finite"
+        self._flip_direction = int(np.sign(flip_direction))
 
     #### grid directions ####
 
@@ -430,7 +454,6 @@ class _ActionElement(object):
 
 
     def update_interpolator(self, left_buffer = 1e-6, right_buffer = 1e-6):
-
         # check buffers
         left_buffer = float(left_buffer)
         right_buffer = float(right_buffer)
@@ -452,28 +475,8 @@ class _ActionElement(object):
     def percentile(self, x):
         return self.interpolator(x)
 
-    #### coefficient-related direction ####
-
-    @property
-    def aligned(self):
-        return not np.isnan(self._flip_direction)
-
-
-    @property
-    def flip_direction(self):
-        if self.aligned:
-            return int(self._flip_direction)
-        else:
-            return float('nan')
-
-
-    @flip_direction.setter
-    def flip_direction(self, flip_direction):
-        assert np.isfinite(flip_direction), "flip_direction must be finite"
-        self._flip_direction = int(np.sign(flip_direction))
 
     #### methods ####
-
     def feasible_values(self, x, return_actions = True, return_percentiles = False):
 
         """
@@ -841,7 +844,7 @@ class ActionSet(object):
     @property
     def aligned(self):
         """
-        :return: True if action set has been aligned with coefficients of linear classifier
+        :return: True if action set has been aligned to a model
         """
         return all([e.aligned for e in self._elements.values()])
 
