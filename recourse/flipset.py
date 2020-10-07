@@ -62,8 +62,7 @@ class Flipset(object):
 
 
     def __repr__(self):
-        s = ['Flipset with %d Items',
-             '# items: %d' % len(self),
+        s = ['Flipset with %d Items' % len(self),
              'x: %r' % self._x,
              'w: (%s)' % self._coefs,
              'items: %r' % self._items]
@@ -275,6 +274,7 @@ class Flipset(object):
         table.pop(3)
         return '\n'.join(table)
 
+
     def to_html(self):
         def _color_white_or_gray(row):
             color = 'white' if row.name[0] % 2 == 0 else 'lightgray'
@@ -299,6 +299,7 @@ class Flipset(object):
                 .render()
                 )
         return html
+
 
     #### item management ####
     def _add(self, items):

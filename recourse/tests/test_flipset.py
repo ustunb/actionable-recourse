@@ -7,7 +7,7 @@ import itertools
 # variable types:       all binary, mix
 # # of variables in w:  1, >1
 # recourse:             exists, does not exist
-# action_set:           all actionable, all conditionally actionable, all immutable, mix
+# action_set:           all compatible, all conditionally compatible, all immutable, mix
 
 # fit
 # populate

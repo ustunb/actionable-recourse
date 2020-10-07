@@ -88,8 +88,3 @@ members of the project's leadership.
 
 This Code of Conduct is adapted from the [Contributor Covenant][homepage], version 1.4,
 available at [http://contributor-covenant.org/version/1/4][version]
-
-### Project Leads:
-
-Berk Ustun, contact: squall14414@gmail.com
-Alexander Spangher, contact: alexander.spangher@gmail.com

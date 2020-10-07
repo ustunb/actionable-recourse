@@ -70,8 +70,8 @@ class RecourseBuilder(object):
         # attach action set
         assert isinstance(action_set, ActionSet)
         assert len(action_set) == len(self._coefficients)
-        if not action_set.aligned:
-            action_set.align(self._coefficients)
+        if not action_set.alignment_known:
+            action_set.set_alignment(self._coefficients)
 
         self._action_set = action_set
 
@@ -109,7 +109,7 @@ class RecourseBuilder(object):
             assert self.n_variables == len(self._action_set)
             assert self._x is None or self.n_variables == len(self._x)
             assert isinstance(self._intercept, float)
-            assert self.action_set.aligned
+            assert self.action_set.alignment_known
             assert 0 <= self._min_items <= self._max_items <= self.n_variables
         return True
 
@@ -698,12 +698,15 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         elif cost_type == 'max':
             indices['max_cost_var_name'] = ['max_cost']
+
             ## handle empty actionsets
             indices['epsilon'] = np.min(indices['cost_df'] or np.inf) / np.sum(indices['cost_ub'])
             vars.add(names = indices['max_cost_var_name'] + indices['cost_var_names'],
                      types = ['C'] * (n_actionable + 1),
                      obj = [1.0] + [indices['epsilon']] * n_actionable)
+
             #lb = [0.0] * (n_actionable + 1)) # default values are 0.0
+
 
             cost_constraints = {
                 'names': [],
@@ -752,7 +755,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
             #              lin_expr = [SparsePair(ind = indices['max_cost_var_name'] + info['cost_var_name'], val = [1.0, -1.0])],
             #              senses = ["G"],
             #              rhs = [0.0])
-
 
         mip = set_cpx_parameters(mip, self._cpx_parameters)
         self._mip = mip
