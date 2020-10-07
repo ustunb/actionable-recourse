@@ -332,23 +332,34 @@ class ActionSet(object):
 
 
     #### grid generation  ####
-    def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_compatible = False):
+    def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_compatible = True):
         """
         returns feasible features when features are x
         :param x: list or np.array containing vector of feature values (must have same length as ActionSet)
         :param action_grid: set to True for returned grid to reflect changes to x
         :param return_percentiles: set to True to include percentiles in return values
-        :param return_compatible: set to True to restrict return values to only compatible features
+        :param return_compatible: set to True to build a grid using only compatible variables
         :return: dictionary of the form {name: feasible_values}
         """
         assert isinstance(x, (list, np.ndarray)), 'feature values should be list or np.ndarray'
         assert len(x) == len(self), 'dimension mismatch x should have len %d' % len(self)
-        assert np.all(np.isfinite(x)), 'feature values should be finite'
+        assert np.isfinite(x).all(), 'x must contain finite values'
+
 
         if return_compatible:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].compatible}
         else:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
+
+
+        # if len(self.constraints) > 0:
+        #     # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
+        #     subset_limit_names = set([c.names for c in self.constraints if isinstance(c, SubsetLimitConstraint)])
+        #     for n in subset_limit_names:
+        #         j = self._names.index(n)
+        #         e = self._elements[n]
+        #
+        #             output.update({n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles)})
 
         if return_percentiles:
             return {n: v[0] for n, v in output.items()}, {n: v[1] for n, v in output.items()}
@@ -752,7 +763,7 @@ class _ActionElement(object):
 
         # generate grid
         grid = np.arange(start, stop + step, step)
-        
+
         # cast grid
         if self._variable_type == int:
             grid = grid.astype('int')
