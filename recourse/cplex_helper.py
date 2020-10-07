@@ -109,7 +109,7 @@ def add_variable_cpx(cpx, name, obj, ub, lb, vtype):
 # Parameter Setting
 DEFAULT_CPLEX_PARAMETERS = {
     #
-    'display_cplex_progress': True,
+    'display_cplex_progress': False,
     #set to True to show CPLEX progress in console
     #
     'n_cores': 1,
