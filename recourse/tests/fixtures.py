@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 from recourse.paths import *
-import pyomo.environ
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
+from recourse.builder import RecourseBuilder, _SOLVER_TYPE_PYTHON_MIP, _SOLVER_TYPE_CPX
 from recourse.flipset import Flipset
 from recourse.auditor import RecourseAuditor
 
@@ -95,7 +94,7 @@ def features(request, data, classifier):
     return x
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
 def recourse_builder(request, classifier, action_set):
     action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = request.param,
@@ -105,12 +104,12 @@ def recourse_builder(request, classifier, action_set):
     return rb
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
 def auditor(request, classifier, action_set):
     return RecourseAuditor(clf = classifier, action_set = action_set, solver= request.param)
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
 def flipset(request, classifier, action_set, denied_individual):
     print("request param")
     print(request.param)
@@ -128,9 +127,9 @@ def recourse_builder_cpx(classifier, action_set):
 
 
 @pytest.fixture
-def recourse_builder_cbc(classifier, action_set):
+def recourse_builder_python_mip(classifier, action_set):
     action_set.set_alignment(classifier)
-    rb = RecourseBuilder(solver = _SOLVER_TYPE_CBC,
+    rb = RecourseBuilder(solver = _SOLVER_TYPE_PYTHON_MIP,
                          action_set = action_set,
                          clf = classifier)
 
@@ -143,8 +142,8 @@ def auditor_cpx(classifier, action_set):
 
 
 @pytest.fixture
-def auditor_cbc(classifier, action_set):
-    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
+def auditor_python_mip(classifier, action_set):
+    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_PYTHON_MIP)
 
 
 @pytest.fixture
@@ -153,5 +152,5 @@ def flipset_cpx(classifier, action_set, denied_individual):
 
 
 @pytest.fixture
-def flipset_cbc(classifier, action_set, denied_individual):
-    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
+def flipset_python_mip(classifier, action_set, denied_individual):
+    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_PYTHON_MIP)
