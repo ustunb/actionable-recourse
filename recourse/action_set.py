@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import pandas as pd
+from collections import namedtuple
 from prettytable import PrettyTable
 from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
@@ -331,23 +332,23 @@ class ActionSet(object):
 
 
     #### grid generation  ####
-    def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_immutable = False):
+    def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_compatible = False):
         """
         returns feasible features when features are x
         :param x: list or np.array containing vector of feature values (must have same length as ActionSet)
         :param action_grid: set to True for returned grid to reflect changes to x
         :param return_percentiles: set to True to include percentiles in return values
-        :param return_immutable: set to True to restrict return values to only compatible features
+        :param return_compatible: set to True to restrict return values to only compatible features
         :return: dictionary of the form {name: feasible_values}
         """
         assert isinstance(x, (list, np.ndarray)), 'feature values should be list or np.ndarray'
         assert len(x) == len(self), 'dimension mismatch x should have len %d' % len(self)
         assert np.all(np.isfinite(x)), 'feature values should be finite'
 
-        if return_immutable:
-            output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
-        else:
+        if return_compatible:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].compatible}
+        else:
+            output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
 
         if return_percentiles:
             return {n: v[0] for n, v in output.items()}, {n: v[1] for n, v in output.items()}
@@ -362,7 +363,6 @@ class ActionSet(object):
 
 
 #### Action Set Constraints Classes ####
-from collections import namedtuple
 SubsetLimitConstraint = namedtuple('SubsetLimitConstraint', ['id', 'names', 'indices', 'lb', 'ub'])
 
 class _ActionConstraints(object):
@@ -404,6 +404,7 @@ class _ActionConstraints(object):
         :param lb: minimum number of variables that can be changed by a feasible action
         :param ub: maximum number of variables that can be changed by a feasible action
         :param id: string representing the name of the constraint:
+        :return: string representing the name of the warning
         -----
 
         Say a model uses a one-hot encoding of a categorical variable V with values {v1,v2,...vk},
@@ -456,16 +457,6 @@ class _ActionConstraints(object):
         self._id_counter += 1
 
         return id
-
-    def add_logical_constraint(self, if_names, then_names, complement_if = None, complement_then = None):
-        """
-        :param if_names:
-        :param then_names:
-        :param complement_if:
-        :param complement_then:
-        :return:
-        """
-        raise NotImplementedError()
 
 
 #### Action Set Internal Classes ####
