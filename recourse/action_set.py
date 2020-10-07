@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import pandas as pd
 from prettytable import PrettyTable
@@ -42,7 +43,7 @@ class ActionSet(object):
                           If y_desired = -1, then we consider x such that h(x) = +1, and look for actions a such that h(x+a) = -1
 
         Optional Keyword Arguments
-        
+
         :param custom_bounds: dictionary of custom bounds
         :param default_bounds: tuple containing information for default bounds
                                 - (lb, ub, type) where type = 'percentile' or 'absolute';
@@ -90,6 +91,7 @@ class ActionSet(object):
         self._names = [str(n) for n in names]
         self._indices = indices
         self._elements = elements
+        self._constraints = _ActionConstraints(names = self._names)
 
         # set y_desired
         assert y_desired in (-1, 0, 1), "y_desired must be +1 or -1"
@@ -352,7 +354,17 @@ class ActionSet(object):
 
         return output
 
-#### Action Set Internal Classes ####
+
+    #### constraints ####
+    @property
+    def constraints(self):
+        return self._constraints
+
+
+#### Action Set Constraints Classes ####
+from collections import namedtuple
+SubsetLimitConstraint = namedtuple('SubsetLimitConstraint', ['id', 'names', 'indices', 'lb', 'ub'])
+
 class _ActionConstraints(object):
     """
     Class to represent and manipulate constraints between variables
@@ -361,42 +373,89 @@ class _ActionConstraints(object):
     def __init__(self, names):
         self._names = names
         self._n_variables = len(names)
-        self._constraints = {
-            'group_limit_constraints': [], #between 1 to 2 of (x1, x2, x3) can be on <-> 1 <= u1 + u2 + u3 <= 2
-            }
+        self._id_counter = 0
+        self._constraints = {}
 
 
     def __len__(self):
         return len(self._constraints)
 
+    def __repr__(self):
+        s = ['%r' % str(v) for v in self._constraints.values()]
+        s = '{' + '\n'.join(s) + '}'
+        return s
 
-    def add_group_limit_constraint(self, names, lb = 0, ub = 1):
+    def remove(self, id):
         """
-        :param names:
-        :param lb:
-        :param ub:
+        :param id: constraint id
+        :return: True if the constraint was removed
+        """
+        assert isinstance(id, str) and len(id) > 0
+        if id in self._constraints:
+            self._constraints.pop(id)
+        else:
+            raise ValueError('no constraint named id')
+        return True
+
+    def add_subset_limit_constraint(self, names, lb = 0, ub = 1, id = None):
+        """
+        add a constraint to limit the number variables in a subset of variables that can be changed at the same time
+        :param names: list of strings containing variable names that will be included in the constraint
+        :param lb: minimum number of variables that can be changed by a feasible action
+        :param ub: maximum number of variables that can be changed by a feasible action
+        :param id: string representing the name of the constraint:
+        -----
+
+        Say a model uses a one-hot encoding of a categorical variable V with values {v1,v2,...vk},
+        so that X would include k indicator variables:
+
+        V_is_v1 = 1[V == v1]
+        V_is_v2 = 1[V == v2]
+        ...
+        V_is_vk = 1[V == vk]
+
+        In such cases, we can add a subset limit to ensure that at most one indicator can be on at a time.
+        We can ensure this by adding:
+
+        action_set.constraints.add(names = ['V_is_v1', 'V_is_v2', ... 'V_is_vk'], #names of indicator variables of V
+                                   lb = 0,
+                                   ub = 1)
+
         :return:
         """
+        # parse constraint id
+        id = '%d' % self._id_counter if id is None else id
+        assert isinstance(id, str)
+        assert len(id) > 0
+
+        # parse variable names
+        assert _check_variable_names(names)
+        assert 2 <= len(names) <= self._n_variables
+        indices = [self._names.index(n) for n in names]
+
         # check bounds
-        assert isinstance(lb, int), 'lb must be integer-valued'
-        assert isinstance(ub, int), 'ub must be integer-valued'
-        assert 2 <= len(names) <= self._n_variables, 'must have between 2 to %d names' % self._n_variables
+        lb = int(lb)
+        ub = int(ub)
         assert 0 <= lb <= self._n_variables, 'lb must be between 0 to %d' % self._n_variables
         assert 0 <= ub <= self._n_variables, 'ub must be between 0 to %d' % self._n_variables
         assert lb <= ub
 
-        # check names
-        assert len(names) == len(list(set(names))), 'names must be unique'
-        indices = [self._names.index(n) for n in names]
-
-        # sort names and indices from lowest to highest
+        # sort names to match order of names in X
         sort_idx = np.argsort(indices)
         names = [names[i] for i in sort_idx]
         indices = [indices[i] for i in sort_idx]
 
-        # add to constraint
-        self._constraints['group_limit_constraints'].add({'names': names, 'indices':indices, ub: ub, lb: lb})
+        # issue a warning if we are overwriting the constraint
+        if id in self._constraints:
+            warnings.warn('Overwriting constraint %s' % id)
 
+        # add constraint
+        self._constraints[id] = SubsetLimitConstraint(id = id, names = names, indices = indices, lb = lb, ub = ub)
+
+        # update constraint id
+        self._id_counter += 1
+
+        return id
 
     def add_logical_constraint(self, if_names, then_names, complement_if = None, complement_then = None):
         """
@@ -409,6 +468,7 @@ class _ActionConstraints(object):
         raise NotImplementedError()
 
 
+#### Action Set Internal Classes ####
 class _ActionElement(object):
     """
     Internal class to represent and manipulate actions for one feature
