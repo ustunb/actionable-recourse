@@ -5,13 +5,18 @@ from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
+# todo: remove to_latex from ActionSet and place it as a standalone function,
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 # todo: set default bounds / step types for each variable type
 
 __all__ = ['ActionSet']
 
+
 class ActionSet(object):
+    """
+    Class to represent and manipulate feasible actions for the features in a dataset
+    """
 
     _default_print_flag = True
     _default_check_flag = True
@@ -21,23 +26,27 @@ class ActionSet(object):
     def __init__(self, X, names = None, y_desired = 1, **kwargs):
 
         """
-        Container of ActionElement for each variable in a dataset.
+        Initializes ActionSet from data
 
-        Requirements:
+        Required Inputs:
 
-        :param df pandas.DataFrame containing features as columns and samples as rows (must contain at least 1 row and 1 column)
+        :param X: pandas.DataFrame or numpy matrix representing a feature matrix (features are columns, samples are rows)
+                  X must contain at least 1 column and at least 1 row
 
-        or
+        :param names: list of strings containing variable names.
+                      names is only required if X is a numpy matrix
 
-        :param X: numpy matrix containing features as columns and samples as rows  (must contain at least 1 row and 1 column)
-        :param names: list of strings containing variable names when X is array-like
+        :param y_desired: value of the desired outcome that will be used to evaluate recourse
+                          y_desired can either be +1 (default value) or -1
+                          If y_desired = +1, then we consider x such that h(x) = -1 and look for actions a such that h(x+a) = +1
+                          If y_desired = -1, then we consider x such that h(x) = +1, and look for actions a such that h(x+a) = -1
 
-        # optional keyword arguments
-
+        Optional Keyword Arguments
+        
         :param custom_bounds: dictionary of custom bounds
         :param default_bounds: tuple containing information for default bounds
                                 - (lb, ub, type) where type = 'percentile' or 'absolute';
-                                - (lb, ub)  if type is omitted, it is assumed to be 'absolute'
+                                - (lb, ub) if type is omitted, it is assumed to be 'absolute'
 
         :param default_step_type:
         :param print_flag: set to True to print a table with the ActionSet as _repr_
@@ -343,10 +352,7 @@ class ActionSet(object):
 
         return output
 
-
-
 #### Action Set Internal Classes ####
-
 class _ActionConstraints(object):
     """
     Class to represent and manipulate constraints between variables
@@ -405,7 +411,7 @@ class _ActionConstraints(object):
 
 class _ActionElement(object):
     """
-    Immutable class to store the lower and upper bounds for a feature.
+    Internal class to represent and manipulate actions for one feature
     ActionSet = Collection of ActionElements for each feature
     """
 
@@ -972,7 +978,7 @@ class _ActionSlice(object):
         return str(t)
 
 
-### Helper Functions
+#### Helper Functions ####
 def _check_variable_names(names):
     """
     checks variable names
