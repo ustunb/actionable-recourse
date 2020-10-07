@@ -350,7 +350,7 @@ class RecourseBuilder(object):
         indices = defaultdict(list)
         if cost_function_type == 'percentile':
 
-            actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_immutable = False)
+            actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = False)
 
             for n, a in actions.items():
 
@@ -409,6 +409,7 @@ class RecourseBuilder(object):
 
     def _check_mip_build_info(self, build_info):
 
+        y_desired = self.action_set.y_desired
         for v in build_info.values():
 
             assert not np.isclose(v['coef'], 0.0)
@@ -417,7 +418,7 @@ class RecourseBuilder(object):
             assert c[0] == 0.0
             assert a[0] == 0.0
 
-            if np.sign(v['coef']) > 0:
+            if y_desired * np.sign(v['coef']) > 0:
                 assert np.all(np.greater(a[1:], 0.0))
             else:
                 assert np.all(np.less(a[1:], 0.0))
@@ -643,10 +644,13 @@ class _RecourseBuilderCPX(RecourseBuilder):
                  lb = indices['action_lb'],
                  ub = indices['action_ub'])
 
-        # sum_j w[j] a[j] > -score
+        # score constraint
+        # y_desired = +1 -> sum_j w[j]*(x[j]+a[j]) > 0 -> sum_j w[j] a[j] > -score
+        # y_desired = -1 -> sum_j w[j]*(x[j]+a[j]) < 0 -> sum_j w[j] a[j] < -score
+        score_constraint_sense = 'G' if self.action_set.y_desired > 0 else 'L'
         cons.add(names = ['score'],
                  lin_expr = [SparsePair(ind = indices['action_var_names'], val = indices['coefficients'])],
-                 senses = ['G'],
+                 senses = [score_constraint_sense],
                  rhs = [-self.score()])
 
         # define indicators u[j][k] = 1 if a[j] = actions[j][k]
