@@ -751,12 +751,8 @@ class _ActionElement(object):
             step = np.ceil(step)
 
         # generate grid
-        try:
-            grid = np.arange(start, stop + step, step)
-        except Exception:
-            from dev.debug import ipsh
-            ipsh()
-
+        grid = np.arange(start, stop + step, step)
+        
         # cast grid
         if self._variable_type == int:
             grid = grid.astype('int')
