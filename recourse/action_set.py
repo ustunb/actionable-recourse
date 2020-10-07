@@ -345,21 +345,18 @@ class ActionSet(object):
         assert len(x) == len(self), 'dimension mismatch x should have len %d' % len(self)
         assert np.isfinite(x).all(), 'x must contain finite values'
 
-
         if return_compatible:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].compatible}
         else:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
 
 
-        # if len(self.constraints) > 0:
-        #     # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
-        #     subset_limit_names = set([c.names for c in self.constraints if isinstance(c, SubsetLimitConstraint)])
-        #     for n in subset_limit_names:
-        #         j = self._names.index(n)
-        #         e = self._elements[n]
-        #
-        #             output.update({n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles)})
+        if len(self.constraints) > 0:
+            # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
+            subset_limit_names = set([c.names for c in self.constraints if isinstance(c, SubsetLimitConstraint)])
+            for n in subset_limit_names:
+                j = self._names.index(n)
+                output[n] = self._elements[n].feasible_values(x[j], return_actions, return_percentiles, drop_suboptimal = False)
 
         if return_percentiles:
             return {n: v[0] for n, v in output.items()}, {n: v[1] for n, v in output.items()}
@@ -371,6 +368,22 @@ class ActionSet(object):
     @property
     def constraints(self):
         return self._constraints
+
+    def add_constraint(self, constraint_type, **constraint_args):
+        if constraint_type == 'subset_limit':
+            id = self._constraints.add_subset_limit_constraint(**constraint_args)
+        else:
+            raise ValueError('unsupported constraint type')
+
+        return id
+
+    def remove_constraint(self, id):
+        """
+        :param id: constraint id
+        :return: True if the constraint was removed
+        """
+        return self._constraints.remove(id)
+
 
 
 #### Action Set Constraints Classes ####
@@ -588,9 +601,9 @@ class _ActionElement(object):
         sd = np.sign(self._step_direction)
         fd = np.sign(self._flip_direction)
         conflict = (fd == 0) or (fd * sd == -1)
-        aligned = not conflict
+        compatible = not conflict
 
-        return aligned
+        return compatible
 
 
     @property
@@ -803,7 +816,7 @@ class _ActionElement(object):
 
 
     #### methods ####
-    def feasible_values(self, x, return_actions = True, return_percentiles = False):
+    def feasible_values(self, x, return_actions = True, return_percentiles = False, drop_suboptimal = True):
 
         """
         returns an array of feasible values or actions for this feature from a specific point x
@@ -824,38 +837,39 @@ class _ActionElement(object):
 
         if self.actionable:
 
+            # obtain a grid of all x-values between lb to ub
             x_new = self.grid
 
+            # drop values that are infeasible due to constraints on the direction of change
             if self._step_direction > 0:
                 x_new = np.extract(np.greater_equal(x_new, x), x_new)
             elif self._step_direction < 0:
                 x_new = np.extract(np.less_equal(x_new, x), x_new)
 
-            # by default step_direction = 0 so
-            if not x in x_new: # include current point
+            # include current point in the grid if it does not exist
+            if not x in x_new:
                 x_new = np.insert(x_new, np.searchsorted(x_new, x), x)
 
         else:
+            x_new = np.array([x]) # if variable is not actionable, then x_new \in [x]
 
-            x_new = np.array([x])
+
+        # if drop suboptimal is true, then we drop actions are improve the chance of attaining y_desired
+        if drop_suboptimal:
+            if self._flip_direction > 0:
+                x_new = np.extract(np.greater_equal(x_new, x), x_new)
+            elif self._flip_direction < 0:
+                x_new = np.extract(np.less_equal(x_new, x), x_new)
 
         if return_actions:
-
-            if self.compatible:
-                # flip-direction must be 1 or -1
-                if self._flip_direction > 0:
-                    x_new = np.extract(np.greater_equal(x_new, x), x_new)
-                else:
-                    x_new = np.extract(np.less_equal(x_new, x), x_new)
-
             vals = x_new - x
         else:
             vals = x_new
 
         if return_percentiles:
             return vals, self.percentile(x_new)
-        else:
-            return vals
+
+        return vals
 
 
 class _BoundElement(object):
