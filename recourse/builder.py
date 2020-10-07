@@ -6,6 +6,7 @@ from recourse.defaults import *
 from recourse.defaults import _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
 from recourse.helper_functions import parse_classifier_args
 from recourse.action_set import ActionSet
+import numpy as np
 
 # todo the next imports to defaults so that we remove solver from SUPPORTED_SOLVERS if they don't exist
 try:
@@ -934,22 +935,35 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         }
 
         # sum_j w[j] a[j] > -score
-        ## CHECK: this was a SparsePair in CPLEX... Python-Mip doesn't have this object.
-        mip += xsum(mip.a[a_j] * indices['coefficients'][j] for j, a_j in enumerate(indices['action_var_names'])) >= -self.score()
+        ## TODO CHECK: this was a SparsePair in CPLEX... Python-Mip doesn't have this object.
+        # score constraint
+        # y_desired = +1 -> sum_j w[j]*(x[j]+a[j]) > 0 -> sum_j w[j] a[j] > -score
+        # y_desired = -1 -> sum_j w[j]*(x[j]+a[j]) < 0 -> sum_j w[j] a[j] < -score
+        score_with_actions = xsum(
+            mip.a[a_j] * indices['coefficients'][j] for j, a_j in enumerate(indices['action_var_names'])
+        )
+        if self.action_set.y_desired > 0:
+            mip += score_with_actions >= -self.score()
+        else:
+            mip += score_with_actions <= -self.score()
 
         # define indicators u[j][k] = 1 if a[j] = actions[j][k]
-        mip.u = {ind_name: mip.add_var(name=ind_name, var_type='B')
-             for ind_name in indices['action_ind_names']}
+        mip.u = {
+            ind_name: mip.add_var(name=ind_name, var_type='B')
+                for ind_name in indices['action_ind_names']
+        }
 
         # restrict a[j] to feasible values using a 1 of K constraint setup
         for info in build_info.values():
             # restrict a[j] to actions in feasible set and make sure exactly 1 indicator u[j][k] is on
             # 1. a[j] = sum_k u[j][k] * actions[j][k] - > 0.0 = sum_k u[j][k] * actions[j][k] - a[j]
             # 2. sum_k u[j][k] = 1.0
-            mip += xsum(mip.u[info['action_ind_names'][k]] * info['actions'][k] for k in range(len(info['actions']))) == mip.a[
-                info['action_var_name'][0]], 'set_a[%d]' % info['idx']
-            mip += xsum(mip.u[info['action_ind_names'][k]] for k in range(len(info['actions']))) == 1, "pick_a['%d']" % \
-                   info['idx']
+
+            action_val = xsum(mip.u[info['action_ind_names'][k]] * info['actions'][k] for k in range(len(info['actions'])))
+            mip += action_val == mip.a[info['action_var_name'][0]], 'set_a[%d]' % info['idx']
+
+            action_on = xsum(mip.u[info['action_ind_names'][k]] for k in range(len(info['actions'])))
+            mip += action_on == 1, "pick_a['%d']" % info['idx']
 
             # declare indicator variables as SOS set
             mip.add_sos(
@@ -968,10 +982,9 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         # min_size <= size:
         # min_size          <=  n_actionable - sum_j u[j][0]
         # sum_j u[j][0]     <=  n_actionable - min_size
-        mip += xsum(mip.u[indices['action_off_names'][k]] for k in range(n_actionable)) >= float(
-            n_actionable - max_items), 'max_items'
-        mip += xsum(mip.u[indices['action_off_names'][k]] for k in range(n_actionable)) <= float(
-            n_actionable - min_items), 'min_items'
+        num_off = xsum(mip.u[indices['action_off_names'][k]] for k in range(n_actionable))
+        mip += num_off >= float(n_actionable - max_items), 'max_items'
+        mip += num_off <= float(n_actionable - min_items), 'min_items'
 
         # add constraints for cost function
         if cost_type in ('total', 'local'):
@@ -994,9 +1007,8 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
 
             for info in build_info.values():
                 ## def cost
-                mip += mip.c[info['cost_var_name'][0]] == xsum(
-                            info['costs'][k] * mip.u[info['action_ind_names'][k]] for k in range(len(info['costs']))
-                ), 'def_cost[%d]' % info['idx']
+                cost_var = xsum(info['costs'][k] * mip.u[info['action_ind_names'][k]] for k in range(len(info['costs'])))
+                mip += mip.c[info['cost_var_name'][0]] == cost_var, 'def_cost[%d]' % info['idx']
                 ## set max cost
                 mip += mip.max_cost_var - mip.c[info['cost_var_name'][0]] >= 0, 'set_max_cost[%d]' % info['idx']
 
