@@ -1,18 +1,16 @@
-import numpy as np
-
 ### Solver ###
 
 _SOLVER_TYPE_CPX = 'cplex'
-_SOLVER_TYPE_CBC = 'cbc'
-SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC}
+_SOLVER_TYPE_PYTHON_MIP = 'python-mip'
+SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP}
 
 def set_default_solver():
 
     if _check_solver_cpx():
         return _SOLVER_TYPE_CPX
 
-    if _check_solver_cbc():
-        return _SOLVER_TYPE_CBC
+    if _check_solver_python_mip():
+        return _SOLVER_TYPE_PYTHON_MIP
 
     raise ModuleNotFoundError('could not find installed MIP solver')
 
@@ -31,10 +29,10 @@ def _check_solver_cpx():
     return chk
 
 
-def _check_solver_cbc():
+def _check_solver_python_mip():
     chk = False
     try:
-        import pyomo
+        import mip
         #todo add some check to make sure CBC is installed
         chk = True
     except ImportError:
