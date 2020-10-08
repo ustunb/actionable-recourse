@@ -1,8 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import OneHotEncoder
 from recourse.paths import *
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
+from recourse.builder import RecourseBuilder, _SOLVER_TYPE_PYTHON_MIP, _SOLVER_TYPE_CPX
 from recourse.action_set import ActionSet
 import numpy as np
 
@@ -46,7 +45,7 @@ fb_cplex.fit()
 
 ## CBC
 fb_cbc = RecourseBuilder(
-    solver=_SOLVER_TYPE_CBC,
+    solver=_SOLVER_TYPE_PYTHON_MIP,
     coefficients=coefficients,
     intercept=intercept - (np.log(p / (1. - p))),
     action_set=action_set,
