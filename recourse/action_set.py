@@ -1,6 +1,7 @@
 import warnings
 import numpy as np
 import pandas as pd
+import itertools
 from collections import namedtuple
 from prettytable import PrettyTable
 from recourse.helper_functions import parse_classifier_args
@@ -297,7 +298,7 @@ class ActionSet(object):
 
         if len(self.constraints) > 0:
             # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
-            subset_limit_names = set([c.names for c in self._constraints if isinstance(c, SubsetLimitConstraint)])
+            subset_limit_names = self.constraints.constrained_names(constraint_type = SubsetLimitConstraint)
             for n in subset_limit_names:
                 j = self._names.index(n)
                 output[n] = self._elements[n].feasible_values(x[j], return_actions, return_percentiles, drop_suboptimal = False)
@@ -374,6 +375,7 @@ class ActionSet(object):
 
 #### Constraints ####
 SubsetLimitConstraint = namedtuple('SubsetLimitConstraint', ['id', 'names', 'indices', 'lb', 'ub'])
+_VALID_CONSTRAINT_TYPES = [SubsetLimitConstraint]
 
 class _ActionConstraints(object):
     """
@@ -389,23 +391,26 @@ class _ActionConstraints(object):
     def __len__(self):
         return len(self._constraints)
 
-    def __iter__(self):
-        self._idx = -1
-        self._keys = list(self._constraints.keys())
-        return self
-
-    def __next__(self):
-        self._idx += 1
-        if self._idx >= len(self._constraints):
-            self._idx = -1
-            raise StopIteration
-        else:
-            return self._constraints[self.keys[self._idx]]
-
     def __repr__(self):
         s = ['%r' % str(v) for v in self._constraints.values()]
         s = '{' + '\n'.join(s) + '}'
         return s
+
+    def constrained_names(self, constraint_type = None):
+        """
+        :param constraint_type: must be a valid constraint type
+        :return:
+        """
+        if constraint_type is None:
+            names = [c.names for c in self._constraints.values()]
+        else:
+            assert constraint_type in _VALID_CONSTRAINT_TYPES
+            names = [c.names for c in self._constraints.values() if isinstance(c, constraint_type)]
+
+        # choose unique names
+        names = set(itertools.chain.from_iterable(names))
+        return names
+
 
     def remove(self, id):
         """
