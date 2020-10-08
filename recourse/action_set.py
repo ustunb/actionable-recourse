@@ -296,7 +296,7 @@ class ActionSet(object):
 
         if len(self.constraints) > 0:
             # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
-            subset_limit_names = set([c.names for c in self.constraints if isinstance(c, SubsetLimitConstraint)])
+            subset_limit_names = set([n for c in self.constraints if isinstance(c, SubsetLimitConstraint) for n in c.names])
             for n in subset_limit_names:
                 j = self._names.index(n)
                 output[n] = self._elements[n].feasible_values(x[j], return_actions, return_percentiles, drop_suboptimal = False)
@@ -399,7 +399,7 @@ class _ActionConstraints(object):
             self._idx = -1
             raise StopIteration
         else:
-            return self._constraints[self.keys[self._idx]]
+            return self._constraints[self._keys[self._idx]]
 
     def __repr__(self):
         s = ['%r' % str(v) for v in self._constraints.values()]
