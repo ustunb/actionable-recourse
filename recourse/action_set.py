@@ -940,43 +940,44 @@ class _BoundElement(object):
                 assert np.less_equal(lb, np.min(values))
                 assert np.greater_equal(ub, np.max(values))
 
+        assert np.less_equal(lb, ub)
+
         if variable_type == int:
             lb = np.floor(lb)
             ub = np.ceil(ub)
 
         # set lower bound and upper bound
-        assert np.less_equal(lb, ub)
         self._lb = float(lb)
         self._ub = float(ub)
 
 
     @property
     def bound_type(self):
-        return str(self._bound_type)
+        return self._bound_type
 
 
     @property
     def lb(self):
         """ value of the lower bound """
-        return float(self._lb)
+        return self._lb
 
 
     @property
     def ub(self):
         """ value of the lower bound """
-        return float(self._ub)
+        return self._ub
 
 
     @property
     def qlb(self):
         """ value of the lower bound (as a percentile) """
-        return float(self._qlb)
+        return self._qlb
 
 
     @property
     def qub(self):
         """ value of the upper bound bound (as a percentile) """
-        return float(self._qub)
+        return self._qub
 
 
     def __repr__(self):
