@@ -233,7 +233,8 @@ class Flipset(object):
 
         # index items by item_id
         flat_df = flat_df.sort_values(by = 'item_id')
-        flat_df = flat_df.rename(columns = {'item_id': 'item'})
+        flat_df = flat_df.rename(columns = {'item_id': 'item', 'x':'Current Value', 'x_new': 'Required Value'})
+        print(flat_df.columns)
         return flat_df.set_index('item')
 
 
@@ -246,14 +247,14 @@ class Flipset(object):
         flat_df = self.to_flat_df()
 
         # add another column for the latex arrow symbol
-        idx = flat_df.columns.tolist().index('x_new')
+        idx = flat_df.columns.tolist().index('Required Value')
         flat_df.insert(loc = idx, column = 'to', value = ['longrightarrow'] * len(flat_df))
 
         # name headers
         flat_df = flat_df.rename(columns = {
             'features': '\textsc{Feature Subset}',
-            'x': '\textsc{Current Values}',
-            'x_new': '\textsc{Required Values}'})
+            'Current Value': '\textsc{Current Values}',
+            'Required Value': '\textsc{Required Values}'})
 
         # get raw tex table
         table = flat_df.to_latex(multirow = True, index = True, escape = False, na_rep = '-', column_format = 'rlccc')
@@ -276,6 +277,9 @@ class Flipset(object):
 
 
     def to_html(self):
+
+        # remove the numbering on the left if possible?
+
         def _color_white_or_gray(row):
             color = 'white' if row.name[0] % 2 == 0 else 'lightgray'
             res = 'background-color: %s' % color
@@ -284,7 +288,8 @@ class Flipset(object):
         flat_df = self.to_flat_df()
 
         # add another column for the latex arrow symbol
-        idx = flat_df.columns.tolist().index('x_new')
+        idx = flat_df.columns.tolist().index('Required Value')
+
         flat_df.insert(loc = idx, column = 'to', value = ['&#8594;'] * len(flat_df))
 
         idx = (pd.DataFrame(flat_df.index)
@@ -296,6 +301,7 @@ class Flipset(object):
         html = (flat_df.style
                 .set_table_styles([{"selector": "tr", "props": [('background-color', 'white')]}])
                 .apply(_color_white_or_gray, axis=1)
+                .hide_index()
                 .render()
                 )
         return html
