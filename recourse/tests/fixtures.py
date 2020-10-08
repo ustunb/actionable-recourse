@@ -1,40 +1,50 @@
-import numpy as np
 import pytest
-from recourse.paths import *
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder, SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
-from recourse.flipset import Flipset
-from recourse.auditor import RecourseAuditor
+from recourse import *
+from recourse.paths import *
+from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
 
-@pytest.fixture(params = ['german'])
+@pytest.fixture(params = ['german', 'german-cat'])
 def data(request):
 
     data_name = request.param
-    df = pd.read_csv(test_dir / ('%s_processed.csv' % data_name))
-    df_headers = df.columns.tolist()
+    data_file_name = test_dir / ('%s_processed.csv' % data_name.replace('-cat', ''))
+    df = pd.read_csv(data_file_name)
 
+    # process outcome name
+    df_headers = df.columns.tolist()
     outcome_name = df_headers[0]
     df_headers.remove(outcome_name)
+
+    # process names of variables to drop / categorical variables
     to_drop = [outcome_name]
     categorical_names = []
-
     if data_name == 'german':
-        categorical_names.extend(['PurposeOfLoan'])
+        to_drop.extend(['Gender', 'OtherLoansAtStore', 'PurposeOfLoan'])
+    elif data_name == 'german-cat':
         to_drop.extend(['Gender', 'OtherLoansAtStore'])
+        categorical_names.extend(['PurposeOfLoan'])
 
     to_drop.extend(categorical_names)
     variable_names = [n for n in df_headers if n not in to_drop]
 
+    # create data objects
     data = {
         'data_name': data_name,
         'outcome_name': outcome_name,
         'variable_names': variable_names,
+        'categorical_names': categorical_names,
         'Y': df[outcome_name],
         'X': df[variable_names],
-        'X_cat': df[categorical_names],
         }
+
+    if len(categorical_names) > 0:
+        X_onehot = pd.get_dummies(df[categorical_names], prefix_sep = '_is_')
+        data['X'] = data['X'].join(X_onehot)
+        data['variable_names'] = data['X'].columns.tolist()
+        data['onehot_names'] = X_onehot.columns.tolist()
 
     return data
 
@@ -44,7 +54,9 @@ def classifier(request, data):
     if request.param == 'logreg':
         clf = LogisticRegression(max_iter = 1000, solver = 'lbfgs')
         clf.fit(data['X'], data['Y'])
+
     return clf
+
 
 @pytest.fixture(params = ['logreg'])
 def coefficients(request, classifier):

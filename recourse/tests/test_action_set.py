@@ -1,5 +1,5 @@
 from recourse.tests.fixtures import *
-from recourse.action_set import ActionSet
+from recourse import ActionSet
 
 # Test Strategy
 # --------------------------------------------------------
@@ -65,19 +65,13 @@ def test_align(data, coefficients):
 
 def test_subset_constraints(data):
 
-    n_categorical = data['X_cat'].shape[1]
-    if n_categorical > 1:
+    if len(data['categorical_names']) == 1:
 
-        print(n_categorical)
-        X_cat = pd.get_dummies(data['X_cat'], prefix_sep = '_is_')
-        names_cat = X_cat.columns.to_list()
-
-        X = data['X'].join(X_cat)
-        a = ActionSet(X, y_desired = 1)
+        a = ActionSet(data['X'], y_desired = 1)
 
         # add constraint
         assert len(a.constraints) == 0
-        id = a.add_constraint(constraint_type = 'subset_limit', names = names_cat, lb = 1, ub = 1)
+        id = a.add_constraint(constraint_type = 'subset_limit', names = data['onehot_names'], lb = 1, ub = 1)
         assert len(a.constraints) == 1
 
         # remove constraint
@@ -85,9 +79,9 @@ def test_subset_constraints(data):
         assert len(a.constraints) == 0
 
         # add progressively larger constriants
-        k = len(names_cat)
-        for n in range(1, k):
-            a.add_constraint(constraint_type = 'subset_limit', names = names_cat, lb = 0, ub = k)
+        k = len(data['onehot_names'])
+        for n in range(k):
+            a.add_constraint(constraint_type = 'subset_limit', names = data['onehot_names'], lb = 0, ub = n)
 
         assert len(a.constraints) == k
 
