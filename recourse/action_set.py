@@ -396,6 +396,10 @@ class _ActionConstraints(object):
         s = '{' + '\n'.join(s) + '}'
         return s
 
+
+    def __iter__(self):
+        return self._constraints.values().__iter__()
+
     def constrained_names(self, constraint_type = None):
         """
         :param constraint_type: must be a valid constraint type
@@ -1176,4 +1180,3 @@ def texify_action_set(action_set):
 
     table = df.to_latex(index = False, escape = False)
     return table
-
