@@ -154,12 +154,12 @@ class ActionSet(object):
 
 
     def __str__(self):
-        return self.tabulate()
+        return tabulate_actions(self)
 
 
     def __repr__(self):
         if self._print_flag:
-            return self.tabulate()
+            return str(self)
 
     ### validation ###
     @property
@@ -196,22 +196,6 @@ class ActionSet(object):
             self._print_flag = bool(flag)
         else:
             raise AttributeError('print_flag must be boolean or None')
-
-
-    def tabulate(self):
-        t = PrettyTable()
-        t.add_column("name", self.name, align = "r")
-        t.add_column("variable type", self.variable_type, align = "r")
-        t.add_column("actionable", self.actionable, align = "r")
-        t.add_column("compatible", self.compatible, align = "r")
-        t.add_column("step direction", self.step_direction, align = "r")
-        t.add_column("flip direction", self.flip_direction, align = "r")
-        t.add_column("grid size", self.size, align = "r")
-        t.add_column("step type", self.step_type, align = "r")
-        t.add_column("step size", self.step_size, align = "r")
-        t.add_column("lb", self.lb, align = "r")
-        t.add_column("ub", self.ub, align = "r")
-        return str(t)
 
 
     @property
@@ -428,7 +412,7 @@ class ActionSet(object):
         return self._constraints.remove(id)
 
 
-#### Action Set Constraints ####
+#### Constraints ####
 SubsetLimitConstraint = namedtuple('SubsetLimitConstraint', ['id', 'names', 'indices', 'lb', 'ub'])
 
 class _ActionConstraints(object):
@@ -525,7 +509,7 @@ class _ActionConstraints(object):
         return id
 
 
-#### Action Set Internal Classes ####
+#### Elements ####
 class _ActionElement(object):
     """
     Internal class to represent and manipulate actions for one feature
@@ -1071,25 +1055,10 @@ class _ActionSlice(object):
         return len(self._indices)
 
     def __str__(self):
-        return self.tabulate()
+        return tabulate_actions(self)
 
     def __repr__(self):
-        return self.tabulate()
-
-    def tabulate(self):
-        t = PrettyTable()
-        t.add_column("name", self.name, align = "r")
-        t.add_column("variable type", self.variable_type, align = "r")
-        t.add_column("actionable", self.actionable, align = "r") #todo change
-        t.add_column("compatible", self.compatible, align = "r") #todo change
-        t.add_column("step direction", self.step_direction, align = "r")
-        t.add_column("flip direction", self.flip_direction, align = "r")
-        t.add_column("grid size", self.size, align = "r")
-        t.add_column("step type", self.step_type, align = "r")
-        t.add_column("step size", self.step_size, align = "r")
-        t.add_column("lb", self.lb, align = "r")
-        t.add_column("ub", self.ub, align = "r")
-        return str(t)
+        return str(self)
 
 
 #### Helper Functions ####
@@ -1156,3 +1125,24 @@ def _expand_values(value, m):
         raise ValueError("unknown variable type %s")
 
     return value_array
+
+
+def tabulate_actions(action_set):
+    """
+    prints a table with information about each element in the action set
+    :param action_set:
+    :return:
+    """
+    t = PrettyTable()
+    t.add_column("name", action_set.name, align = "r")
+    t.add_column("variable type", action_set.variable_type, align = "r")
+    t.add_column("actionable", action_set.actionable, align = "r")
+    t.add_column("compatible", action_set.compatible, align = "r")
+    t.add_column("step direction", action_set.step_direction, align = "r")
+    t.add_column("flip direction", action_set.flip_direction, align = "r")
+    t.add_column("grid size", action_set.size, align = "r")
+    t.add_column("step type", action_set.step_type, align = "r")
+    t.add_column("step size", action_set.step_size, align = "r")
+    t.add_column("lb", action_set.lb, align = "r")
+    t.add_column("ub", action_set.ub, align = "r")
+    return str(t)
