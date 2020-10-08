@@ -7,6 +7,7 @@ from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
+# todo: add doc string for feasible values
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 # todo: set default bounds / step types for each variable type
@@ -296,7 +297,7 @@ class ActionSet(object):
 
         if len(self.constraints) > 0:
             # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
-            subset_limit_names = set([c.names for c in self.constraints if isinstance(c, SubsetLimitConstraint)])
+            subset_limit_names = set([c.names for c in self._constraints if isinstance(c, SubsetLimitConstraint)])
             for n in subset_limit_names:
                 j = self._names.index(n)
                 output[n] = self._elements[n].feasible_values(x[j], return_actions, return_percentiles, drop_suboptimal = False)
@@ -385,6 +386,8 @@ class _ActionConstraints(object):
         self._id_counter = 0
         self._constraints = {}
 
+    def __iter__(self):
+        return self._constraints.__iter__()
 
     def __len__(self):
         return len(self._constraints)
