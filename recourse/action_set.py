@@ -369,13 +369,56 @@ class ActionSet(object):
     def constraints(self):
         return self._constraints
 
+
     def add_constraint(self, constraint_type, **constraint_args):
+        """
+        add a constraint on multiple behaviors
+
+        :param constraint_type: string indicating the constraint type.
+                                supported types include: 'subset_limit_constraint'
+
+        :param constraints_args: named arguments for specific type of constraint
+
+        :return: id: string that can be used to access the constraint as ActionSet.constraints[id]
+
+        -----
+        'subset_limit_constraint'
+        -----
+
+        arguments:
+
+        :param names: list of strings containing variable names that will be included in the constraint
+        :param lb: minimum number of variables that can be changed by a feasible action
+        :param ub: maximum number of variables that can be changed by a feasible action
+        :param id: string representing the name of the constraint:
+
+        usage:
+
+        Say a model uses a one-hot encoding of a categorical variable V with values {v1,v2,...vk},
+        so that X would include k indicator variables:
+
+        V_is_v1 = 1[V == v1]
+        V_is_v2 = 1[V == v2]
+        ...
+        V_is_vk = 1[V == vk]
+
+        In such cases, we can add a subset limit to ensure that at most one indicator can be on at a time.
+        We can ensure this by adding:
+
+        action_set.constraints.add(names = ['V_is_v1', 'V_is_v2', ... 'V_is_vk'], #names of indicator variables of V
+                                   lb = 0,
+                                   ub = 1)
+
+        :return:
+        """
+
         if constraint_type == 'subset_limit':
             id = self._constraints.add_subset_limit_constraint(**constraint_args)
         else:
             raise ValueError('unsupported constraint type')
 
         return id
+
 
     def remove_constraint(self, id):
         """
@@ -385,8 +428,7 @@ class ActionSet(object):
         return self._constraints.remove(id)
 
 
-
-#### Action Set Constraints Classes ####
+#### Action Set Constraints ####
 SubsetLimitConstraint = namedtuple('SubsetLimitConstraint', ['id', 'names', 'indices', 'lb', 'ub'])
 
 class _ActionConstraints(object):
