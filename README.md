@@ -89,6 +89,9 @@ audit_df = auditor.audit(X)  ## matrix of features over which we will perform th
 ## print mean feasibility and cost of recourse
 print(audit_df['feasible'].mean())
 print(audit_df['cost'].mean())
+print_recourse_audit_report(X, audit_df, y)
+# or produce additional information of cost of recourse by other variables
+# print_recourse_audit_report(X, audit_df, y, group_by = ['y', 'Married', 'EducationLevel'])
 ```
 
 ----
