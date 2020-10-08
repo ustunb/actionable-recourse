@@ -38,6 +38,7 @@ def data(request):
         'categorical_names': categorical_names,
         'Y': df[outcome_name],
         'X': df[variable_names],
+        'onehot_names': [],
         }
 
     if len(categorical_names) > 0:
