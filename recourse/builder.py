@@ -585,7 +585,6 @@ class RecourseBuilder(object):
         return all_info
 
 
-
 class _RecourseBuilderCPX(RecourseBuilder):
 
 
