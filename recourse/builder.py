@@ -685,6 +685,16 @@ class _RecourseBuilderCPX(RecourseBuilder):
                  senses = ['G', 'L'],
                  rhs = [float(n_actionable - max_items), float(n_actionable - min_items)])
 
+        for idx, c in enumerate(self.action_set.constraints):
+            # c.lb <= k - \sum_ {j \ in indices} u[j][0] <= c.ub
+            k = len(c.indices)
+            off_names = ['u[%d][0]' % j for j in c.indices]
+            num_on = SparsePair(ind=off_names, val=[-1.0] * k)
+            cons.add(names=['constr_%d_lb' % idx, 'constr_%d_ub' % idx],
+                     lin_expr=[num_on, num_on],
+                     senses=['G', 'L'],
+                     rhs=[float(c.lb) - k, float(c.ub) - k])
+
         # add constraints for cost function
         if cost_type in ('total', 'local'):
             indices.pop('cost_var_names')
