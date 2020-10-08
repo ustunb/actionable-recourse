@@ -389,6 +389,15 @@ class _ActionConstraints(object):
     def __len__(self):
         return len(self._constraints)
 
+    def __iter__(self):
+        self.idx = 0
+        return self
+
+    def __next__(self):
+        i = self.idx
+        self.idx += 1
+        return self._constraints[i]
+
     def __repr__(self):
         s = ['%r' % str(v) for v in self._constraints.values()]
         s = '{' + '\n'.join(s) + '}'
