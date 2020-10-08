@@ -1,19 +1,6 @@
+# This file contains constants used in actionable-recourse
+
 ### Solver ###
-
-_SOLVER_TYPE_CPX = 'cplex'
-_SOLVER_TYPE_PYTHON_MIP = 'python-mip'
-SUPPORTED_SOLVERS = {_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP}
-
-def set_default_solver():
-
-    if _check_solver_cpx():
-        return _SOLVER_TYPE_CPX
-
-    if _check_solver_python_mip():
-        return _SOLVER_TYPE_PYTHON_MIP
-
-    raise ModuleNotFoundError('could not find installed MIP solver')
-
 
 def _check_solver_cpx():
     """
@@ -40,10 +27,35 @@ def _check_solver_python_mip():
     return chk
 
 
+_SOLVER_TYPE_CPX = 'cplex'
+_SOLVER_TYPE_PYTHON_MIP = 'python-mip'
+
+# Set Default Solver
+def set_default_solver():
+
+    if _check_solver_cpx():
+        return _SOLVER_TYPE_CPX
+
+    if _check_solver_python_mip():
+        return _SOLVER_TYPE_PYTHON_MIP
+
+    raise ModuleNotFoundError('could not find installed MIP solver')
+
 DEFAULT_SOLVER = set_default_solver()
 
+# Build List of Supported Solvers
+SUPPORTED_SOLVERS = []
 
-### Cost Types ###
+if _check_solver_cpx():
+    SUPPORTED_SOLVERS.append(_SOLVER_TYPE_CPX)
+
+if _check_solver_python_mip():
+    SUPPORTED_SOLVERS.append(_SOLVER_TYPE_PYTHON_MIP)
+
+SUPPORTED_SOLVERS = tuple(SUPPORTED_SOLVERS)
+
+
+### Cost Function Types ###
 
 VALID_MIP_COST_TYPES = {'total', 'local', 'max'}
 DEFAULT_AUDIT_COST_TYPE = 'max'
