@@ -7,7 +7,6 @@ from recourse.helper_functions import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
-# todo: remove to_latex from ActionSet and place it as a standalone function,
 # todo: replace percentiles with scikit-learn API
 # todo: get_feasible_values/get_flip_actions should include an option to also include all observed values
 # todo: set default bounds / step types for each variable type
@@ -220,47 +219,7 @@ class ActionSet(object):
         """
         :return: formatted latex table summarizing the action set for publications
         """
-        tex_binary_str = '$\{0,1\}$'
-        tex_integer_str = '$\mathbb{Z}$'
-        tex_real_str = '$\mathbb{R}$'
-
-        df = self.df
-        df = df.drop(['compatible', 'flip_direction'], axis = 1)
-
-        new_types = [tex_real_str] * len(df)
-        new_ub = ['%1.1f' % v for v in df['ub'].values]
-        new_lb = ['%1.1f' % v for v in df['lb'].values]
-
-        for i, t in enumerate(df['variable_type']):
-            ub, lb = df['ub'][i], df['lb'][i]
-            if t == 'int':
-                new_ub[i] = '%d' % int(ub)
-                new_lb[i] = '%d' % int(lb)
-                new_types[i] = tex_binary_str if lb == 0 and ub == 1 else tex_integer_str
-
-        df['variable_type'] = new_types
-        df['ub'] = new_ub
-        df['lb'] = new_lb
-
-        df['mutability'] = df['actionable'].map({False: 'no', True: 'yes'}) #todo change
-        up_idx = df['actionable'] & df['step_direction'] == 1
-        dn_idx = df['actionable'] & df['step_direction'] == -1
-        df.loc[up_idx, 'mutability'] = 'only increases'
-        df.loc[dn_idx, 'mutability'] = 'only decreases'
-
-        df = df.drop(['actionable', 'step_direction'], axis = 1)
-
-        df = df.rename(columns = {
-            'name': 'Name',
-            'grid_size': '\# Actions',
-            'variable_type': 'Type',
-            'actionability': 'Actionability',
-            'lb': 'LB',
-            'ub': 'UB',
-            })
-
-        table = df.to_latex(index = False, escape = False)
-        return table
+        return texify_action_set(self)
 
     #### alignment ####
     @property
@@ -1130,9 +1089,11 @@ def _expand_values(value, m):
 def tabulate_actions(action_set):
     """
     prints a table with information about each element in the action set
-    :param action_set:
+    :param action_set: ActionSet object
     :return:
     """
+    assert isinstance(action_set, ActionSet)
+
     t = PrettyTable()
     t.add_column("name", action_set.name, align = "r")
     t.add_column("variable type", action_set.variable_type, align = "r")
@@ -1146,3 +1107,54 @@ def tabulate_actions(action_set):
     t.add_column("lb", action_set.lb, align = "r")
     t.add_column("ub", action_set.ub, align = "r")
     return str(t)
+
+
+def texify_action_set(action_set):
+    """
+    :param action_set: ActionSet object
+    :return: formatted latex table summarizing the action set for publications
+    """
+    assert isinstance(action_set, ActionSet)
+
+    tex_binary_str = '$\{0,1\}$'
+    tex_integer_str = '$\mathbb{Z}$'
+    tex_real_str = '$\mathbb{R}$'
+
+    df = action_set.df
+    df = df.drop(['compatible', 'flip_direction'], axis = 1)
+
+    new_types = [tex_real_str] * len(df)
+    new_ub = ['%1.1f' % v for v in df['ub'].values]
+    new_lb = ['%1.1f' % v for v in df['lb'].values]
+
+    for i, t in enumerate(df['variable_type']):
+        ub, lb = df['ub'][i], df['lb'][i]
+        if t == 'int':
+            new_ub[i] = '%d' % int(ub)
+            new_lb[i] = '%d' % int(lb)
+            new_types[i] = tex_binary_str if lb == 0 and ub == 1 else tex_integer_str
+
+    df['variable_type'] = new_types
+    df['ub'] = new_ub
+    df['lb'] = new_lb
+
+    df['mutability'] = df['actionable'].map({False: 'no', True: 'yes'}) #todo change
+    up_idx = df['actionable'] & df['step_direction'] == 1
+    dn_idx = df['actionable'] & df['step_direction'] == -1
+    df.loc[up_idx, 'mutability'] = 'only increases'
+    df.loc[dn_idx, 'mutability'] = 'only decreases'
+
+    df = df.drop(['actionable', 'step_direction'], axis = 1)
+
+    df = df.rename(columns = {
+        'name': 'Name',
+        'grid_size': '\# Actions',
+        'variable_type': 'Type',
+        'actionability': 'Actionability',
+        'lb': 'LB',
+        'ub': 'UB',
+        })
+
+    table = df.to_latex(index = False, escape = False)
+    return table
+
