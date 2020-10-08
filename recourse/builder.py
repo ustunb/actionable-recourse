@@ -405,7 +405,8 @@ class RecourseBuilder(object):
     def _check_mip_build_info(self, build_info):
 
         y_desired = self.action_set.y_desired
-        for v in build_info.values():
+        constrained_names = self.action_set.constraints.constrained_names()
+        for k, v in build_info.items():
 
             assert not np.isclose(v['coef'], 0.0)
             a = np.array(v['actions'])
@@ -413,10 +414,11 @@ class RecourseBuilder(object):
             assert c[0] == 0.0
             assert a[0] == 0.0
 
-            if y_desired * np.sign(v['coef']) > 0:
-                assert np.all(np.greater(a[1:], 0.0))
-            else:
-                assert np.all(np.less(a[1:], 0.0))
+            if k not in constrained_names:
+                if y_desired * np.sign(v['coef']) > 0:
+                    assert np.all(np.greater(a[1:], 0.0))
+                else:
+                    assert np.all(np.less(a[1:], 0.0))
 
             assert len(a) >= 2
             assert len(a) == len(c)
