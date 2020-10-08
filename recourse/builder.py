@@ -1009,9 +1009,9 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
             mip.a[a_j] * indices['coefficients'][j] for j, a_j in enumerate(indices['action_var_names'])
         )
         if self.action_set.y_desired > 0:
-            mip += score_with_actions >= -self.score()
+            mip += score_with_actions >= -self.score(), 'flip_prediction'
         else:
-            mip += score_with_actions <= -self.score()
+            mip += score_with_actions <= -self.score(), 'flip_prediction'
 
         # define indicators u[j][k] = 1 if a[j] = actions[j][k]
         mip.u = {
@@ -1056,8 +1056,8 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         for idx, c in enumerate(self.action_set.constraints):
             # c.lb <= k - \sum_ {j \ in indices} u[j][0] <= c.ub
             k = len(c.indices)
-            off_names = ['u[%d][0]' % j for j in c.indices]
-            num_on = k - xsum( mip.u[j] for j in off_names)
+            null_names = [indices['nullify_ind_names'][j] for j in c.indices]
+            num_on = k - xsum(mip.u[j] for j in null_names)
             mip += num_on >= c.lb, 'constr_%d_lb' % idx
             mip += num_on <= c.ub, 'constr_%d_ub' % idx
 
@@ -1120,7 +1120,7 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
     def solution_info(self):
         assert self._mip.status != mip.OptimizationStatus.LOADED
         info = self._empty_mip_solution_info
-        if self._mip.status == mip.OptimizationStatus.OPTIMAL:
+        if (self._mip.status == mip.OptimizationStatus.OPTIMAL) and (self._mip.gap != np.inf):
             indices = self._mip_indices
             variable_idx = indices['var_idx']
 
