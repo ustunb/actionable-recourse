@@ -344,7 +344,7 @@ class RecourseBuilder(object):
 
         indices = defaultdict(list)
         if cost_function_type == 'percentile':
-
+            ## TODO: set this to returns_compatible = True and check if that changes anything.
             actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = False)
 
             for n, a in actions.items():
@@ -986,6 +986,15 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         num_off = xsum(mip.u[indices['action_off_names'][k]] for k in range(n_actionable))
         mip += num_off >= float(n_actionable - max_items), 'max_items'
         mip += num_off <= float(n_actionable - min_items), 'min_items'
+
+        # add constraints for categorical variables
+        for idx, c in enumerate(self.action_set.constraints):
+            # c.lb <= k - \sum_ {j \ in indices} u[j][0] <= c.ub
+            k = len(c.indices)
+            off_names = ['u[%d][0]' % j for j in c.indices]
+            num_on = k - xsum( mip.u[j] for j in off_names)
+            mip += num_on >= c.lb, 'constr_%d_lb' % idx
+            mip += num_on <= c.ub, 'constr_%d_ub' % idx
 
         # add constraints for cost function
         if cost_type in ('total', 'local'):
