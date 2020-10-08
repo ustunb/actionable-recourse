@@ -390,13 +390,17 @@ class _ActionConstraints(object):
         return len(self._constraints)
 
     def __iter__(self):
-        self.idx = 0
+        self._idx = -1
+        self._keys = list(self._constraints.keys())
         return self
 
     def __next__(self):
-        i = self.idx
-        self.idx += 1
-        return self._constraints[i]
+        self._idx += 1
+        if self._idx >= len(self._constraints):
+            self._idx = -1
+            raise StopIteration
+        else:
+            return self._constraints[self.keys[self._idx]]
 
     def __repr__(self):
         s = ['%r' % str(v) for v in self._constraints.values()]
