@@ -396,7 +396,6 @@ class _ActionConstraints(object):
         s = '{' + '\n'.join(s) + '}'
         return s
 
-
     def __iter__(self):
         return self._constraints.values().__iter__()
 

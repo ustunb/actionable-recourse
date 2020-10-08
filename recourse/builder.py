@@ -334,7 +334,15 @@ class RecourseBuilder(object):
     #### mip stamping ####
     def _get_mip_build_info(self, cost_function_type = 'percentile', validate = True):
 
+        assert cost_function_type == 'percentile'
+
         build_info = {}
+        indices = defaultdict(list)
+
+        # get names of constrained variables
+        constrained_names = self.action_set.constraints.constrained_names()
+
+        # setup cost function
         if self.mip_cost_type == 'local':
             cost_up = lambda c: np.log((1.0 - c[0])/(1.0 - c))
             cost_dn = lambda c: np.log((1.0 - c) / (1.0 - c[0]))
@@ -342,60 +350,74 @@ class RecourseBuilder(object):
             cost_up = lambda c: c - c[0]
             cost_dn = lambda c: c[0] - c
 
-        indices = defaultdict(list)
-        if cost_function_type == 'percentile':
-            ## TODO: set this to returns_compatible = True and check if that changes anything.
-            actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = False)
+        # todo: set this to returns_compatible = True and check if that changes anything.
+        actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = False)
 
-            for n, a in actions.items():
+        for n, a in actions.items():
 
-                if len(a) >= 2:
+            if len(a) >= 2:
 
-                    c = percentiles[n]
-                    if np.isclose(a[-1], 0.0):
-                        a = np.flip(a, axis = 0)
-                        c = np.flip(c, axis = 0)
-                        c = cost_dn(c)
-                    else:
-                        c = cost_up(c)
+                c = percentiles[n]
+                if np.isclose(a[-1], 0.0):
+                    a = np.flip(a, axis = 0)
+                    c = np.flip(c, axis = 0)
+                    c = cost_dn(c)
+                else:
+                    c = cost_up(c)
 
-                    # override numerical issues
-                    bug_idx = np.logical_or(np.less_equal(c, 0.0), np.isclose(a, 0.0, atol = 1e-8))
-                    bug_idx = np.flatnonzero(bug_idx).tolist()
-                    bug_idx.pop(0)
-                    if len(bug_idx) > 0:
-                        c = np.delete(c, bug_idx)
-                        a = np.delete(a, bug_idx)
+                # override numerical issues
+                bug_idx = np.logical_or(np.less_equal(c, 0.0), np.isclose(a, 0.0, atol = 1e-8))
+                bug_idx = np.flatnonzero(bug_idx).tolist()
+                bug_idx.pop(0)
+                if len(bug_idx) > 0:
+                    c = np.delete(c, bug_idx)
+                    a = np.delete(a, bug_idx)
 
-                    idx = self._variable_index[n]
-                    w = float(self._coefficients[idx])
-                    #da = np.diff(a)
-                    dc = np.diff(c)
+                idx = self._variable_index[n]
+                w = float(self._coefficients[idx])
+                #da = np.diff(a)
+                dc = np.diff(c)
 
-                    info = {
-                        'idx': idx,
-                        'coef': w,
-                        'actions': a.tolist(),
-                        'costs': c.tolist(),
-                        'action_var_name': ['a[%d]' % idx],
-                        'action_ind_names': ['u[%d][%d]' % (idx, k) for k in range(len(a))],
-                        'cost_var_name': ['c[%d]' % idx]
-                        }
 
-                    build_info[n] = info
+                # find nullifying index
+                # k_null is index such that x[j] - a[j][k_null] = 0
+                # action at nullifying index sets the variable to 0
+                x = self._x[idx]
+                if n in constrained_names and x > 0:
+                    k_null = np.flatnonzero(a == -x)[0]
+                else:
+                    k_null = 0
 
-                    indices['var_idx'].append(idx)
-                    indices['coefficients'].append(w)
-                    indices['action_off_names'].append(info['action_ind_names'][0]) ## the indices of variables that indicate that the feature is "off", i.e. no actions are taken on that feature.
-                    indices['action_ind_names'].extend(info['action_ind_names'])
-                    indices['action_var_names'].extend(info['action_var_name'])
-                    indices['cost_var_names'].extend(info['cost_var_name'])
-                    indices['action_lb'].append(float(np.min(a)))
-                    indices['action_ub'].append(float(np.max(a)))
-                    # indices['action_df'].append(float(np.min(da)))
-                    indices['cost_ub'].append(float(np.max(c)))
-                    indices['cost_df'].append(float(np.min(dc)))
+                info = {
+                    'idx': idx,
+                    'coef': w,
+                    'actions': a.tolist(),
+                    'costs': c.tolist(),
+                    'action_var_name': ['a[%d]' % idx],
+                    'action_ind_names': ['u[%d][%d]' % (idx, k) for k in range(len(a))],
+                    'cost_var_name': ['c[%d]' % idx],
+                    'nullify_ind_name': ['u[%d][%d]' % (idx, k_null)],
+                    }
 
+                build_info[n] = info
+
+                indices['var_idx'].append(idx)
+                indices['coefficients'].append(w)
+                indices['action_off_names'].append(info['action_ind_names'][0])  ## the indices of variables that indicate that the feature is "off", i.e. no actions are taken on that feature.
+                indices['action_ind_names'].extend(info['action_ind_names'])
+                #
+                indices['nullify_ind_names'].append(info['nullify_ind_name'][0])
+                #indices['nullify_ind_values'].append(k_null)
+                #
+                indices['action_var_names'].extend(info['action_var_name'])
+                indices['cost_var_names'].extend(info['cost_var_name'])
+                indices['action_lb'].append(float(np.min(a)))
+                indices['action_ub'].append(float(np.max(a)))
+                # indices['action_df'].append(float(np.min(da)))
+                indices['cost_ub'].append(float(np.max(c)))
+                indices['cost_df'].append(float(np.min(dc)))
+
+        # get names of variables associated with constraints
         if validate:
             assert self._check_mip_build_info(build_info)
 
@@ -641,8 +663,8 @@ class _RecourseBuilderCPX(RecourseBuilder):
                  ub = indices['action_ub'])
 
         # score constraint
-        # y_desired = +1 -> sum_j w[j]*(x[j]+a[j]) > 0 -> sum_j w[j] a[j] > -score
-        # y_desired = -1 -> sum_j w[j]*(x[j]+a[j]) < 0 -> sum_j w[j] a[j] < -score
+        # y_desired = +1:  sum_j w[j]*(x[j]+a[j]) > 0 -> sum_j w[j] a[j] > -score
+        # y_desired = -1:  sum_j w[j]*(x[j]+a[j]) < 0 -> sum_j w[j] a[j] < -score
         score_constraint_sense = 'G' if self.action_set.y_desired > 0 else 'L'
         cons.add(names = ['score'],
                  lin_expr = [SparsePair(ind = indices['action_var_names'], val = indices['coefficients'])],
@@ -653,11 +675,10 @@ class _RecourseBuilderCPX(RecourseBuilder):
         vars.add(names = indices['action_ind_names'], types = ['B'] * n_indicators)
 
         # restrict a[j] to feasible values using a 1 of K constraint setup
+        # restrict a[j] to actions in feasible set and make sure exactly 1 indicator u[j][k] is on
         for info in build_info.values():
-
-            # restrict a[j] to actions in feasible set and make sure exactly 1 indicator u[j][k] is on
-            # 1. a[j]  =   sum_k u[j][k] * actions[j][k] - > 0.0   =   sum u[j][k] * actions[j][k] - a[j]
-            # 2.sum_k u[j][k] = 1.0
+            # 1. a[j]  =   sum_k u[j][k] * actions[j][k] -> 0.0   =   sum u[j][k] * actions[j][k] - a[j]
+            # 2. sum_k u[j][k] = 1.0
             cons.add(names = ['set_a[%d]' % info['idx'], 'pick_a[%d]' % info['idx']],
                      lin_expr = [SparsePair(ind = info['action_var_name'] + info['action_ind_names'], val = [-1.0] + info['actions']),
                                  SparsePair(ind = info['action_ind_names'], val = [1.0] * len(info['actions']))],
@@ -684,15 +705,36 @@ class _RecourseBuilderCPX(RecourseBuilder):
                  senses = ['G', 'L'],
                  rhs = [float(n_actionable - max_items), float(n_actionable - min_items)])
 
-        for idx, c in enumerate(self.action_set.constraints):
-            # c.lb <= k - \sum_ {j \ in indices} u[j][0] <= c.ub
+
+
+        for c in self.action_set.constraints:
+            """
+            the constraint has the form:
+            
+            c.lb - k <= -\sum_ {j \ in indices} u[j][k_null] <= c.ub - k
+            
+            where, k_null is defined as the value such that:
+            
+            x[j] + a[j][k_null] = 0
+            
+            the constraint is implemeneted in CPLEX using a ranged constraint of the form:
+            
+            lhs[i] <= a*x[i] <= lhs[i] + range_values[i]
+            
+            here:
+            
+            lhs = float(c.lb - k)
+            rhs = float(c.ub - k)
+            range_values = rhs - lhs = float(c.ub - c.lb)
+            """
             k = len(c.indices)
-            off_names = ['u[%d][0]' % j for j in c.indices]
-            num_on = SparsePair(ind=off_names, val=[-1.0] * k)
-            cons.add(names=['constr_%d_lb' % idx, 'constr_%d_ub' % idx],
-                     lin_expr=[num_on, num_on],
-                     senses=['G', 'L'],
-                     rhs=[float(c.lb) - k, float(c.ub) - k])
+            null_names = [indices['nullify_ind_names'][j] for j in c.indices]
+            cons.add(names = ['subset_limit_%s' % c.id],
+                     lin_expr = [SparsePair(ind = null_names, val = [-1.0] * k)],
+                     senses=['R'],
+                     rhs = [float(c.lb) - k],
+                     range_values = [float(c.ub - c.lb)])
+
 
         # add constraints for cost function
         if cost_type in ('total', 'local'):
@@ -701,6 +743,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
             mip.objective.set_linear(objval_pairs)
 
         elif cost_type == 'max':
+
             indices['max_cost_var_name'] = ['max_cost']
 
             ## handle empty actionsets
@@ -710,8 +753,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
                      obj = [1.0] + [indices['epsilon']] * n_actionable)
 
             #lb = [0.0] * (n_actionable + 1)) # default values are 0.0
-
-
             cost_constraints = {
                 'names': [],
                 'lin_expr': [],
@@ -886,17 +927,32 @@ class _RecourseBuilderCPX(RecourseBuilder):
         """
 
         mip = self._mip
-        feature_off_idxs = self._mip_indices['action_off_names']
+        #feature_off_idxs = self._mip_indices['action_off_names']
+
+        # todo: revisit this constraint
+        """
+        get a = np.array(mip.solution.get_values(action_var_names))
+        for j, aj in enumerate(a):
+            if aj != 0:
+                if self._names[j] is a one-hot-encoding:
+                    off_idx[j] = nullify_ind_names[j]
+                otherwise:
+                    off_idx[j] = action_off_names[j]
+        """
+
+        feature_off_idxs = self._mip_indices['nullify_ind_names']
         u = np.array(mip.solution.get_values(feature_off_idxs))
+
+
         ## if the "off index" are off (i.e. = 0), that means the action is "on"
         on_idx = np.isclose(u, 0.0)
 
         ## array where con_val[i] = 1 if feature is off, -1 if feature is on.
         con_vals = np.ones(len(feature_off_idxs), dtype = np.float_)
         con_vals[on_idx] = -1.0
+
         ## one minus number of features that are off.
         con_rhs =  np.sum(~on_idx) - 1
-
         mip.linear_constraints.add(lin_expr = [SparsePair(ind = feature_off_idxs, val = con_vals.tolist())],
                                    senses = ["L"],
                                    rhs = [float(con_rhs)])

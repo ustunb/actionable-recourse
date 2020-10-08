@@ -10,7 +10,6 @@ from recourse.builder import RecourseBuilder
 __all__ = ['RecourseAuditor']
 
 # todo add timer / print
-
 class RecourseAuditor(object):
     """
     Compute feasibility and cost of recourse over a sample of points that were denied access.
