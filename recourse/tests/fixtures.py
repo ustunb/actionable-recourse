@@ -4,7 +4,7 @@ from recourse.paths import *
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_PYTHON_MIP, _SOLVER_TYPE_CPX
+from recourse.builder import RecourseBuilder, SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
 from recourse.flipset import Flipset
 from recourse.auditor import RecourseAuditor
 
@@ -97,7 +97,7 @@ def features(request, data, classifier):
     return x
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def recourse_builder(request, classifier, action_set):
     action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = request.param,
@@ -107,12 +107,12 @@ def recourse_builder(request, classifier, action_set):
     return rb
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def auditor(request, classifier, action_set):
     return RecourseAuditor(clf = classifier, action_set = action_set, solver= request.param)
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def flipset(request, classifier, action_set, denied_individual):
     print("request param")
     print(request.param)
