@@ -1,3 +1,5 @@
+# This file contains constants used in actionable-recourse
+
 ### Solver ###
 
 _SOLVER_TYPE_CPX = 'cplex'
