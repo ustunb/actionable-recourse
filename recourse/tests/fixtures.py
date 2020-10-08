@@ -18,10 +18,13 @@ def data(request):
     outcome_name = df_headers[0]
     df_headers.remove(outcome_name)
     to_drop = [outcome_name]
+    categorical_names = []
 
     if data_name == 'german':
-        to_drop.extend(['Gender', 'PurposeOfLoan', 'OtherLoansAtStore'])
+        categorical_names.extend(['PurposeOfLoan'])
+        to_drop.extend(['Gender', 'OtherLoansAtStore'])
 
+    to_drop.extend(categorical_names)
     variable_names = [n for n in df_headers if n not in to_drop]
 
     data = {
@@ -30,6 +33,7 @@ def data(request):
         'variable_names': variable_names,
         'Y': df[outcome_name],
         'X': df[variable_names],
+        'X_cat': df[categorical_names],
         }
 
     return data
@@ -40,7 +44,6 @@ def classifier(request, data):
     if request.param == 'logreg':
         clf = LogisticRegression(max_iter = 1000, solver = 'lbfgs')
         clf.fit(data['X'], data['Y'])
-
     return clf
 
 @pytest.fixture(params = ['logreg'])
