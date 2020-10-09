@@ -1,5 +1,3 @@
-from recourse.tests.fixtures import *
-
 # Test Strategy
 # --------------------------------------------------------
 # cost function:        local, max, total
@@ -10,7 +8,11 @@ from recourse.tests.fixtures import *
 
 # fit
 # populate
-
+import pytest
+import numpy as np
+from recourse.defaults import SUPPORTED_SOLVERS
+from recourse.action_set import ActionSet
+from recourse.builder import RecourseBuilder
 
 def test_rb_fit_without_initialization(data, recourse_builder):
     """Test fitting on a denied individual, CPLEX."""

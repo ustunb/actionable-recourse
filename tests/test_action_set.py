@@ -1,5 +1,5 @@
-from recourse.tests.fixtures import *
 from recourse import ActionSet
+import numpy as np
 
 # Test Strategy
 # --------------------------------------------------------

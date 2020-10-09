@@ -1,4 +1,4 @@
-from recourse.tests.fixtures import *
+import numpy as np
 
 n = 50
 #todo choose points randomly
