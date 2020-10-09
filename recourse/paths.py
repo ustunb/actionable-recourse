@@ -6,4 +6,4 @@ repo_dir = Path(__file__).absolute().parent.parent
 pkg_dir = Path(__file__).absolute().parent
 
 # test directory
-test_dir = pkg_dir / 'tests'
+test_dir = repo_dir / 'tests'
