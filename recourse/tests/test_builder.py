@@ -1,6 +1,3 @@
-import pytest
-import tests.fixtures
-
 # Test Strategy
 # --------------------------------------------------------
 # cost function:        local, max, total
