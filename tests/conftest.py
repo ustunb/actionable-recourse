@@ -1,37 +1,51 @@
-import numpy as np
 import pytest
-from recourse.paths import *
-import pyomo.environ
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from recourse.action_set import ActionSet
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CBC, _SOLVER_TYPE_CPX
-from recourse.flipset import Flipset
-from recourse.auditor import RecourseAuditor
+from recourse import *
+from recourse.paths import *
+from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
 
-@pytest.fixture(params = ['german'])
+@pytest.fixture(params = ['german', 'german-cat'])
 def data(request):
 
     data_name = request.param
-    df = pd.read_csv(test_dir / ('%s_processed.csv' % data_name))
-    df_headers = df.columns.tolist()
+    data_file_name = test_dir / ('%s_processed.csv' % data_name.replace('-cat', ''))
+    df = pd.read_csv(data_file_name)
 
+    # process outcome name
+    df_headers = df.columns.tolist()
     outcome_name = df_headers[0]
     df_headers.remove(outcome_name)
+
+    # process names of variables to drop / categorical variables
     to_drop = [outcome_name]
-
+    categorical_names = []
     if data_name == 'german':
-        to_drop.extend(['Gender', 'PurposeOfLoan', 'OtherLoansAtStore'])
+        to_drop.extend(['Gender', 'OtherLoansAtStore', 'PurposeOfLoan'])
+    elif data_name == 'german-cat':
+        to_drop.extend(['Gender', 'OtherLoansAtStore'])
+        categorical_names.extend(['PurposeOfLoan'])
 
+    to_drop.extend(categorical_names)
     variable_names = [n for n in df_headers if n not in to_drop]
 
+    # create data objects
     data = {
         'data_name': data_name,
         'outcome_name': outcome_name,
         'variable_names': variable_names,
+        'categorical_names': categorical_names,
         'Y': df[outcome_name],
         'X': df[variable_names],
+        'onehot_names': [],
         }
+
+    if len(categorical_names) > 0:
+        X_onehot = pd.get_dummies(df[categorical_names], prefix_sep = '_is_')
+        data['X'] = data['X'].join(X_onehot)
+        data['variable_names'] = data['X'].columns.tolist()
+        data['onehot_names'] = X_onehot.columns.tolist()
 
     return data
 
@@ -43,6 +57,7 @@ def classifier(request, data):
         clf.fit(data['X'], data['Y'])
 
     return clf
+
 
 @pytest.fixture(params = ['logreg'])
 def coefficients(request, classifier):
@@ -68,7 +83,7 @@ def threshold(request, scores):
     return scores.quantile(request.param) ## or you can set a score-threshold, like .8
 
 
-@pytest.fixture(params = ['mutable', 'immutable'])
+@pytest.fixture(params = ['actionable', 'immutable'])
 def action_set(request, data):
     """Generate an action_set for German data."""
     # setup action_set
@@ -76,7 +91,7 @@ def action_set(request, data):
     action_set = ActionSet(X = data['X'])
     if request.param == 'immutable' and data['data_name'] == 'german':
         immutable_attributes = ['Age', 'Single', 'JobClassIsSkilled', 'ForeignWorker', 'OwnsHouse', 'RentsHouse']
-        action_set[immutable_attributes].mutable = False
+        action_set[immutable_attributes].actionable = False
         action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
         action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 
@@ -95,9 +110,9 @@ def features(request, data, classifier):
     return x
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def recourse_builder(request, classifier, action_set):
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = request.param,
                          action_set = action_set,
                          clf = classifier)
@@ -105,12 +120,12 @@ def recourse_builder(request, classifier, action_set):
     return rb
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def auditor(request, classifier, action_set):
     return RecourseAuditor(clf = classifier, action_set = action_set, solver= request.param)
 
 
-@pytest.fixture(params = [_SOLVER_TYPE_CPX, _SOLVER_TYPE_CBC])
+@pytest.fixture(params = SUPPORTED_SOLVERS)
 def flipset(request, classifier, action_set, denied_individual):
     print("request param")
     print(request.param)
@@ -119,7 +134,7 @@ def flipset(request, classifier, action_set, denied_individual):
 
 @pytest.fixture
 def recourse_builder_cpx(classifier, action_set):
-    action_set.align(classifier)
+    action_set.set_alignment(classifier)
     rb = RecourseBuilder(solver = _SOLVER_TYPE_CPX,
                          action_set = action_set,
                          clf = classifier)
@@ -128,9 +143,9 @@ def recourse_builder_cpx(classifier, action_set):
 
 
 @pytest.fixture
-def recourse_builder_cbc(classifier, action_set):
-    action_set.align(classifier)
-    rb = RecourseBuilder(solver = _SOLVER_TYPE_CBC,
+def recourse_builder_python_mip(classifier, action_set):
+    action_set.set_alignment(classifier)
+    rb = RecourseBuilder(solver = _SOLVER_TYPE_PYTHON_MIP,
                          action_set = action_set,
                          clf = classifier)
 
@@ -143,8 +158,8 @@ def auditor_cpx(classifier, action_set):
 
 
 @pytest.fixture
-def auditor_cbc(classifier, action_set):
-    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
+def auditor_python_mip(classifier, action_set):
+    return RecourseAuditor(clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_PYTHON_MIP)
 
 
 @pytest.fixture
@@ -153,5 +168,5 @@ def flipset_cpx(classifier, action_set, denied_individual):
 
 
 @pytest.fixture
-def flipset_cbc(classifier, action_set, denied_individual):
-    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_CBC)
+def flipset_python_mip(classifier, action_set, denied_individual):
+    return Flipset(x = denied_individual, clf = classifier, action_set = action_set, solver= _SOLVER_TYPE_PYTHON_MIP)

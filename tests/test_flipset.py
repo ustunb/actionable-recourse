@@ -1,5 +1,6 @@
-from recourse.tests.fixtures import *
 import itertools
+import numpy as np
+import pandas as pd
 
 # Test Strategy
 # --------------------------------------------------------
@@ -7,10 +8,7 @@ import itertools
 # variable types:       all binary, mix
 # # of variables in w:  1, >1
 # recourse:             exists, does not exist
-# action_set:           all actionable, all conditionally actionable, all immutable, mix
-
-# fit
-# populate
+# action_set:           all compatible, all conditionally compatible, all immutable, mix
 
 def test_flipset_distinct_subsets(flipset):
     # generate flipset for person i
@@ -23,7 +21,7 @@ def test_flipset_distinct_subsets(flipset):
     num_actions_on = on_actions.sum(axis=1)
 
     ## check that the overlap between different actions is less than the max of either actionset
-    for i, j in itertools.combinations( on_actions.index, 2):
+    for i, j in itertools.combinations(on_actions.index, 2):
         num_overlap = on_actions.loc[i].dot(on_actions.loc[j])
         assert num_overlap < max(num_actions_on[i], num_actions_on[j])
 

@@ -129,6 +129,7 @@ def load_data():
 
     return data, scaler
 
+
 def undo_coefficient_scaling(clf = None, coefficients = None, intercept = 0.0, scaler = None):
     """
     given coefficients and data for scaled data, returns coefficients and intercept for unnormalized data

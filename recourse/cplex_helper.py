@@ -1,12 +1,16 @@
-# This file contains general helper functions for any CPLEX MIP Object
+# This file contains convenience functions for CPLEX MIP Objects
 import numpy as np
 from functools import reduce
 from cplex import Cplex, SparsePair
 from cplex.exceptions import CplexError
 
-# Convenience Functions when working with MIP
-
+#Copying
 def copy_cplex(cpx):
+    """
+    Copy a Cplex object
+    :param cpx: Cplex object
+    :return: Copy of Cplex object
+    """
     cpx_copy = Cplex(cpx)
     cpx_parameters = cpx.parameters.get_changed()
     for (pname, pvalue) in cpx_parameters:
@@ -17,6 +21,16 @@ def copy_cplex(cpx):
 
 # Building
 def add_variable_cpx(cpx, name, obj, ub, lb, vtype):
+    """
+    Convenience function to add a variable to a Cplex() object
+    :param cpx: handle to Cplex() object
+    :param name: variable name
+    :param obj: coefficient in linear objective
+    :param ub: upper bound on variable
+    :param lb: lower bound on variable
+    :param vtype: variable type
+    :return:
+    """
 
     # name
     if isinstance(name, np.ndarray):
@@ -109,7 +123,7 @@ def add_variable_cpx(cpx, name, obj, ub, lb, vtype):
 # Parameter Setting
 DEFAULT_CPLEX_PARAMETERS = {
     #
-    'display_cplex_progress': True,
+    'display_cplex_progress': False,
     #set to True to show CPLEX progress in console
     #
     'n_cores': 1,
@@ -247,6 +261,14 @@ DEFAULT_CPLEX_PARAMETERS = {
 
 
 def set_cpx_display_options(cpx, display_mip = True, display_parameters = False, display_lp = False):
+    """
+    Convenience function to turn on/off CPLEX functions
+    :param cpx:
+    :param display_mip:
+    :param display_parameters:
+    :param display_lp:
+    :return:
+    """
     cpx.parameters.mip.display.set(display_mip)
     cpx.parameters.simplex.display.set(display_lp)
     cpx.parameters.paramdisplay.set(display_parameters)
@@ -261,6 +283,12 @@ def set_cpx_display_options(cpx, display_mip = True, display_parameters = False,
 
 
 def set_cpx_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
+    """
+    Set parameters of a Cplex object
+    :param cpx: Cplex object
+    :param param: dictionary of parameters
+    :return: cpx
+    """
 
     # get parameter handle
     p = cpx.parameters
@@ -313,6 +341,10 @@ def set_cpx_parameters(cpx, param = DEFAULT_CPLEX_PARAMETERS):
 
 
 def get_cpx_parameters(cpx):
+    """
+    :param cpx: Cplex object
+    :return: Cplex object
+    """
 
     p = cpx.parameters
 
@@ -354,8 +386,8 @@ def get_cpx_parameters(cpx):
 
 def set_mip_cutoff_values(cpx, objval, objval_increment):
     """
-
-    :param cpx:
+    Set the cutoff values used by the Cplex solver
+    :param cpx: Cplex object
     :param objval:
     :param objval_increment:
     :return:
@@ -371,10 +403,10 @@ def set_mip_cutoff_values(cpx, objval, objval_increment):
 
 def set_cpx_time_limit(cpx, time_limit = None):
     """
-
-    :param cpx:
-    :param time_limit:
-    :return:
+    Convenience function to set a time limit on a Cplex object
+    :param cpx: Cplex object
+    :param time_limit: time limit in seconds
+    :return: cpx: Cplex object
     """
     max_time_limit = float(cpx.parameters.timelimit.max())
 
@@ -391,10 +423,12 @@ def set_cpx_time_limit(cpx, time_limit = None):
 
 def set_cpx_node_limit(cpx, node_limit = None):
     """
-
-    :param cpx:
-    :param node_limit:
-    :return:
+    Convenience function to set a node limit on a Cplex object.
+    The node limit determines the maximum number of nodes that can be solved in
+    branch and bound.
+    :param cpx: Cplex object
+    :param node_limit: time limit in seconds
+    :return: cpx: Cplex object
     """
     max_node_limit = cpx.parameters.mip.limits.nodes.max()
     if node_limit == float('inf'):
@@ -410,8 +444,13 @@ def set_cpx_node_limit(cpx, node_limit = None):
 
 
 def toggle_cpx_preprocessing(cpx, toggle = True):
-    """toggles pre-processing on/off for debugging / computational experiments"""
-
+    """
+    Toggle preprocessing on a Cplex object.
+    This function is helpful for debugging, and running computational experiments
+    :param cpx: Cplex object
+    :param toggle: set to True to turn on pre-processing
+    :return: Cplex object
+    """
     # presolve
     # mip.parameters.preprocessing.presolve.help()
     # 0 = off
@@ -446,7 +485,6 @@ def toggle_cpx_preprocessing(cpx, toggle = True):
     #   1 = at beginning
     #   2 = at end
     #   3 = at both beginning and end
-
     if toggle:
         cpx.parameters.preprocessing.aggregator.reset()
         cpx.parameters.preprocessing.reduce.reset()
@@ -464,9 +502,12 @@ def toggle_cpx_preprocessing(cpx, toggle = True):
 
 
 # Solution Statistics
-
 def get_stats_cpx(cpx):
-    """returns information associated with the current best solution for the mip"""
+    """
+    Returns information associated with the current best solution for the mip
+    :param cpx: Cplex object
+    :return: dictionary containing information about the solution to cpx
+    """
 
     INITIAL_SOLUTION_INFO = {
         'status': 'no solution exists',
@@ -514,19 +555,18 @@ def get_stats_cpx(cpx):
 
 
 # Initialization
-
 def add_mip_start_cpx(cpx, solution, effort_level = 1, name = None):
     """
-    :param cpx:
-    :param solution:
+    :param cpx: Cplex object
+    :param solution: solution vector (list or np.array)
     :param effort_level:    (must be one of the values of mip.MIP_starts.effort_level)
                             1 <-> check_feasibility
                             2 <-> solve_fixed
                             3 <-> solve_MIP
                             4 <-> repair
                             5 <-> no_check
-    :param name:
-    :return: mip
+    :param name: name to identify the solution
+    :return: Cplex object
     """
     if isinstance(solution, np.ndarray):
         solution = solution.tolist()

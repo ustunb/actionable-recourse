@@ -10,7 +10,6 @@ from recourse.builder import RecourseBuilder
 __all__ = ['RecourseAuditor']
 
 # todo add timer / print
-
 class RecourseAuditor(object):
     """
     Compute feasibility and cost of recourse over a sample of points that were denied access.
@@ -36,8 +35,8 @@ class RecourseAuditor(object):
         # attach coefficients
         self.coefficients, self.intercept = parse_classifier_args(**kwargs)
 
-        # align coefficients to action set
-        self.action_set.align(self.coefficients)
+        # set_alignment coefficients to action set
+        self.action_set.set_alignment(self.coefficients)
 
         # set solver
         self.solver = kwargs.get('solver', DEFAULT_SOLVER)
