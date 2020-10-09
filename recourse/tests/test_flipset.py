@@ -1,4 +1,3 @@
-from recourse.tests.fixtures import *
 import itertools
 
 # Test Strategy

@@ -1,5 +1,3 @@
-from recourse.tests.fixtures import *
-
 # Test Strategy
 # --------------------------------------------------------
 # cost function:        local

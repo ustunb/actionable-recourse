@@ -1,4 +1,3 @@
-from recourse.tests.fixtures import *
 from recourse import ActionSet
 
 # Test Strategy

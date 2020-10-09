@@ -1,5 +1,3 @@
-from recourse.tests.fixtures import *
-
 n = 50
 #todo choose points randomly
 

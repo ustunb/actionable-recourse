@@ -1,4 +1,5 @@
-from recourse.tests.fixtures import *
+import pytest
+import tests.fixtures
 
 # Test Strategy
 # --------------------------------------------------------
