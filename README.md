@@ -1,38 +1,54 @@
 `actionable-recourse` is a python library for recourse verification and reporting. 
 
-### [Recourse](https://github.com/ustunb/actionable-recourse/blob/master/README.md#recourse) | [Installation](https://github.com/ustunb/actionable-recourse/blob/master/README.md#installation) | [Development](https://github.com/ustunb/actionable-recourse/blob/master/README.md#development) | [Reference](https://github.com/ustunb/actionable-recourse/blob/master/README.md#reference)
+## Recourse in Machine Learning?
 
-## Recourse?
+*Recourse* is the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables – e.g., `income` and `n_credit_cards` as opposed to `age` or `alma_mater`.
 
-In the context of machine learning, *recourse* describes the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables (e.g., `income` as opposed to `age`).
+Recourse is an essential aspect of procedural fairness in consumer-facing applications of machine learning. When a consumer is denied a loan by a machine learning model, for example, they should be able to change the input variables of the model in a way that guarantees approval. Otherwise, this person will be denied the loan so long as the model is deployed, and stripped of the ability to influence a decision that affects their livelihood. 
 
-### When should machine learning system provide recourse?
+## Verification & Reporting
 
-Recourse is an essential aspect of procedural fairness in machine learning. 
+This library provides protect consumers against this harm through verification and reporting. These tools can be used to answer questions like:
 
-In tasks like lending, machine learning systems should provide all individuals with an actionable way to change their prediction. 
-
-In other tasks, models should allow individuals to change their predictions based on specific types of changes. For example, a recidivism prediction model that includes age should allow every person who is predicted to recidivate with the ability to flip their prediction without altering their age.
-
-### Highlights
-
-This library provides tools for recourse verification and reporting . The tools are designed to let users check recourse without interfering in model development.
-
-They can answer questions like:
-
-- What can a person do to obtain a favorable outcome from a model?
+- What can a person do to obtain a favorable prediction from a given model?
 - How many people can change their prediction?
 - How difficult for people to change their prediction?
+ 
+Specific functionality includes:
 
-Functionality
+- Customize the set of feasible action for each input variable of an machine learning model.
+- Produce a list of actionable changes for a person to flip the prediction of a model.
+- Estimate the feasibility of recourse of a model on a population of interest.
+- Evaluate the difficulty of recourse of a model on a population of interest.
 
-- Customize the set of feasible action for each input variable of an ML model.
-- Produce a list of actionable changes for a person to flip the prediction of a linear classifier.
-- Estimate the feasibility of recourse of a linear classifier on a population of interest.
-- Evaluate the difficulty of recourse for a linear classifier on a population of interest.
-
+The tools are currently designed to support linear classification models, and will be extended to cover other kinds of models over time. 
 
 ----
+
+## Installation
+
+You can install the library via `pip`.
+
+```
+$ pip install actionable-recourse
+```
+
+### Requirements
+
+- Python 3
+- Python-MIP or CPLEX  
+
+#### CPLEX
+
+CPLEX is fast optimization solver with a Python API. It is commercial software, but free to download for students and faculty at accredited institutions. To obtain CPLEX:
+
+1. Register for [IBM Academic Initiative](https://www.ibm.com/academic/technology/data-science)
+2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://www-03.ibm.com/isc/esd/dswdown/searchPartNumber.wss?partNumber=CJ6BPML)
+3. Install the CPLEX Optimization Studio.
+4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
+
+If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
+
 
 ### Usage
 ```
@@ -92,64 +108,17 @@ print(audit_df['cost'].mean())
 print_recourse_audit_report(X, audit_df, y)
 # or produce additional information of cost of recourse by other variables
 # print_recourse_audit_report(X, audit_df, y, group_by = ['y', 'Married', 'EducationLevel'])
-```
-
-----
-## Installation
-
-The latest release can be installed via pip by running:
 
 ```
-$ pip install actionable-recourse
-```
-
-### Requirements
-
-- Python 3
-- Python-MIP or CPLEX  
-
-#### CPLEX
-
-CPLEX is fast optimization solver with a Python API. It is commercial software, but free to download for students and faculty at accredited institutions. To obtain CPLEX:
-
-1. Register for [IBM Academic Initiative](https://www.ibm.com/academic/technology/data-science)
-2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://www-03.ibm.com/isc/esd/dswdown/searchPartNumber.wss?partNumber=CJ6BPML)
-3. Install the CPLEX Optimization Studio.
-4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
-
-If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
-
 
 ## Contributing
 
 We're actively working to improve this package and make it more useful. If you come across bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
 
-#### Roadmap
+## Resources
 
-- support for categorical variables in `ActionSet`
-- support for rule-based models such as decision lists and rule lists
-- [scikit-learn](http://scikit-learn.org/stable/developers/contributing.html#rolling-your-own-estimator) compatability
-- [integration into AI360 Fairness toolkit](https://www.ibm.com/blogs/research/2018/09/ai-fairness-360/)
+For more about recourse, check out our paper:
 
-## Reference
+[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
 
-For more about recourse and these tools, check out our paper:
-
-[Actionable Recourse in Linear Classification](http://www.berkustun.com/docs/actionable_recourse.pdf)
-
-```
-inproceedings{ustun2019recourse,
-     title = {Actionable Recourse in Linear Classification},
-     author = {Ustun, Berk and Spangher, Alexander and Liu, Yang},
-     booktitle = {Proceedings of the Conference on Fairness, Accountability, and Transparency},
-     series = {FAT* '19},
-     year = {2019},
-     isbn = {978-1-4503-6125-5},
-     location = {Atlanta, GA, USA},
-     pages = {10--19},
-     numpages = {10},
-     url = {http://doi.acm.org/10.1145/3287560.3287566},
-     doi = {10.1145/3287560.3287566},
-     publisher = {ACM},
-}
-```
+ If you use this library in your research, we would appreciate a citation!
