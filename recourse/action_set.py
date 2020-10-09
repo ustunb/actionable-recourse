@@ -943,13 +943,13 @@ class _BoundElement(object):
 
         if bound_type == 'absolute':
             if lb is None:
-                assert values is not None
+                assert values is not None, "If using 'absolute' bounds without a specified lower bound, please pass in data."
                 lb = np.min(values)
             else:
                 assert isinstance(lb, (float, int, bool)) or (isinstance(lb, np.ndarray) and len(lb) == 1)
 
             if ub is None:
-                assert values is not None
+                assert values is not None, "If using 'absolute' bounds without a specified upper bound, please pass in data."
                 ub = np.max(values)
             else:
                 assert isinstance(ub, (float, int, bool)) or (isinstance(ub, np.ndarray) and len(ub) == 1)
@@ -957,11 +957,11 @@ class _BoundElement(object):
             self._qlb = 0.0
             self._qub = 100.0
 
-            if values is not None:
-                assert np.less_equal(lb, np.min(values))
-                assert np.greater_equal(ub, np.max(values))
+            # if values is not None:
+            #     assert np.less_equal(lb, np.min(values))
+            #     assert np.greater_equal(ub, np.max(values))
 
-        assert np.less_equal(lb, ub)
+        assert np.less_equal(lb, ub), "Lower bound must be less than or equal to the upper bound."
 
         if variable_type == int:
             lb = np.floor(lb)

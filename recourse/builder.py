@@ -351,7 +351,7 @@ class RecourseBuilder(object):
             cost_dn = lambda c: c[0] - c
 
         # todo: set this to returns_compatible = True and check if that changes anything.
-        actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = False)
+        actions, percentiles = self._action_set.feasible_grid(x = self._x, return_actions = True, return_percentiles = True, return_compatible = True)
 
         for n, a in actions.items():
 
