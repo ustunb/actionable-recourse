@@ -233,7 +233,7 @@ class Flipset(object):
 
         # index items by item_id
         flat_df = flat_df.sort_values(by = 'item_id')
-        flat_df = flat_df.rename(columns = {'item_id': 'item', 'x':'Current Value', 'x_new': 'Required Value'})
+        flat_df = flat_df.rename(columns = {'item_id': 'item', 'features': 'Features to Change', 'x':'Current Value', 'x_new': 'Required Value'})
         print(flat_df.columns)
         return flat_df.set_index('item')
 
@@ -296,6 +296,7 @@ class Flipset(object):
                .assign(row=lambda df: df.groupby('item').cumcount().pipe(lambda s: s + 1))
                .pipe(lambda df: list(zip(df['item'], df['row'])))
                )
+
         idx = pd.MultiIndex.from_tuples(idx)
         flat_df.index = idx
         html = (flat_df.style
