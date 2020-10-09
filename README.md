@@ -2,6 +2,7 @@
 
 ## Recourse in Machine Learning?
 
+
 *Recourse* is the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables – e.g., `income` and `n_credit_cards` as opposed to `age` or `alma_mater`.
 
 Recourse is an essential aspect of procedural fairness in consumer-facing applications of machine learning. When a consumer is denied a loan by a machine learning model, for example, they should be able to change the input variables of the model in a way that guarantees approval. Otherwise, this person will be denied the loan so long as the model is deployed, and stripped of the ability to influence a decision that affects their livelihood. 
@@ -28,7 +29,6 @@ The tools are currently designed to support linear classification models, and wi
 ## Installation
 
 You can install the library via `pip`.
-
 ```
 $ pip install actionable-recourse
 ```
@@ -44,7 +44,7 @@ CPLEX is fast optimization solver with a Python API. It is commercial software, 
 
 1. Register for [IBM Academic Initiative](https://www.ibm.com/academic/technology/data-science)
 2. Download the *IBM ILOG CPLEX Optimization Studio* from the [software catalog](https://www-03.ibm.com/isc/esd/dswdown/searchPartNumber.wss?partNumber=CJ6BPML)
-3. Install the CPLEX Optimization Studio.
+3. Install the CPLEX Optimization Studio (on MacOS, run `./<cplex-path>/Contents/MacOS`).
 4. Setup the CPLEX Python API [as described here](https://www.ibm.com/support/knowledgecenter/SSSA5P_12.10.0/ilog.odms.cplex.help/CPLEX/GettingStarted/topics/set_up/Python_setup.html).
 
 If you have problems installing CPLEX, please check the [CPLEX user manual](http://www-01.ibm.com/support/knowledgecenter/SSSA5P/welcome) or the [CPLEX forums](https://www.ibm.com/developerworks/community/forums/html/forum?id=11111111-0000-0000-0000-000000002059). 
@@ -114,6 +114,7 @@ print_recourse_audit_report(X, audit_df, y)
 ## Contributing
 
 We're actively working to improve this package and make it more useful. If you come across bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
+
 
 ## Resources
 

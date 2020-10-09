@@ -79,12 +79,22 @@ class Flipset(object):
 
 
     @property
-    def items(self):
+    def solutions_info(self):
         """
         Dictionary representation of Flipset
         This is a list containing mildly processed output from recourse.builder
         """
         return self._items
+
+
+    @property
+    def items(self):
+        return list(map(lambda x: dict(zip(self.action_set._names, x['actions'].tolist())), self._items))
+
+
+    @property
+    def actions(self):
+        return list(map(lambda x: x['actions'], self._items))
 
 
     @property
@@ -212,6 +222,8 @@ class Flipset(object):
         self.sort()
         tex_columns = ['features', 'x', 'x_new']
         tex_df = self._df[tex_columns]
+        if len(tex_df) == 0:
+            return []
 
         # split components for each item
         tex_df = tex_df.reset_index().rename(columns = {'index': 'item_id'})
@@ -233,8 +245,12 @@ class Flipset(object):
 
         # index items by item_id
         flat_df = flat_df.sort_values(by = 'item_id')
-        flat_df = flat_df.rename(columns = {'item_id': 'item', 'features': 'Features to Change', 'x':'Current Value', 'x_new': 'Required Value'})
-        print(flat_df.columns)
+        flat_df = flat_df.rename(columns = {
+            'item_id': 'item',
+            'features': 'Features to Change',
+            'x':'Current Value',
+            'x_new': 'Required Value'
+        })
         return flat_df.set_index('item')
 
 
@@ -277,15 +293,27 @@ class Flipset(object):
 
 
     def to_html(self):
-
         # remove the numbering on the left if possible?
-
+        cfpb_color = '#e2efd8'
         def _color_white_or_gray(row):
-            color = 'white' if row.name[0] % 2 == 0 else 'lightgray'
+            first_item = row.name if isinstance(row.name, int) else row.name[0]
+            color = 'white' if first_item % 2 == 1 else cfpb_color
             res = 'background-color: %s' % color
             return [res] * len(row)
 
         flat_df = self.to_flat_df()
+        if len(flat_df) == 0:
+            style = "text-shadow: 0px 1px 1px #4d4d4d; color: 'black'; font: 30px 'LeagueGothicRegular'; background-color:" + cfpb_color
+            ## style 1
+            html = (pd.DataFrame([{'outcome': 'No Recourse'}]).style
+                    .set_table_styles([{"selector": "tr", "props": [('background-color', 'white')]}])
+                    .apply(_color_white_or_gray, axis=1)
+                    .hide_index()
+                    .render()
+                    )
+            ## style 2
+            html = '<span style="' + style + '">No Recourse</span>'
+            return html
 
         # add another column for the latex arrow symbol
         idx = flat_df.columns.tolist().index('Required Value')
@@ -299,6 +327,8 @@ class Flipset(object):
 
         idx = pd.MultiIndex.from_tuples(idx)
         flat_df.index = idx
+        flat_df['Current Value'] = flat_df['Current Value'].apply(lambda x: str(int(x)) if int(x) == x else str(x))
+        flat_df['Required Value'] = flat_df['Required Value'].apply(lambda x: str(int(x)) if int(x) == x else str(x))
         html = (flat_df.style
                 .set_table_styles([{"selector": "tr", "props": [('background-color', 'white')]}])
                 .apply(_color_white_or_gray, axis=1)
