@@ -79,12 +79,22 @@ class Flipset(object):
 
 
     @property
-    def items(self):
+    def solutions_info(self):
         """
         Dictionary representation of Flipset
         This is a list containing mildly processed output from recourse.builder
         """
         return self._items
+
+
+    @property
+    def items(self):
+        return list(map(lambda x: dict(zip(self.action_set._names, x['actions'].tolist())), self._items))
+
+
+    @property
+    def actions(self):
+        return list(map(lambda x: x['actions'], self._items))
 
 
     @property
