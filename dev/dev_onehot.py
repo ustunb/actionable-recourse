@@ -1,10 +1,9 @@
-import pandas as pd
-
-from sklearn.linear_model import LogisticRegression
-from recourse.paths import *
-from recourse.builder import RecourseBuilder, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
-from recourse.action_set import ActionSet
 import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from recourse import ActionSet, RecourseBuilder
+from recourse.defaults import _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
+from recourse.paths import test_dir
 
 data_name = 'german'
 data_file = test_dir / ('%s_processed.csv' % data_name)
@@ -27,10 +26,12 @@ a[names_immutable].actionable = False
 a['CriticalAccountOrLoansElsewhere'].step_direction = -1
 a['CheckingAccountBalance_geq_0'].step_direction = 1
 
+
 # only allow changes in the one-hot variable
 a.actionable = False
 a[names_onehot].actionable = True
 id = a.add_constraint(constraint_type = 'subset_limit', names = names_onehot, lb = 1, ub = 1)
+
 
 # fit classifier, get median score, and get denied individuals.
 clf = LogisticRegression(max_iter=1000, solver = 'lbfgs')

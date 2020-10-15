@@ -2,7 +2,7 @@ import seaborn as sns
 import numpy as np
 
 # X is the data to audit on
-def print_recourse_audit_report(X, audit_df, y, group_by = ['y']):
+def print_recourse_audit_report(X, audit_df, y, group_by = ['y']):w
 
     processed_data = (audit_df
                             .merge(X, right_index=True, left_index=True)

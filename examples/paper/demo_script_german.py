@@ -21,15 +21,15 @@ X = (data_df.drop('GoodCustomer', axis=1)
 gender_weight = data_df.assign(c = 1).groupby('Gender')['c'].transform(lambda s: s * 1. / len(s))
 X_gender_balanced = X.sample(n = len(X)*3, replace=True, weights=gender_weight)
 action_set = ActionSet(X = X_gender_balanced)
-action_set['Age'].mutable = False
-action_set['Single'].mutable = False
-action_set['JobClassIsSkilled'].mutable = False
-action_set['ForeignWorker'].mutable = False
-action_set['OwnsHouse'].mutable = False
-action_set['RentsHouse'].mutable = False
+action_set['Age'].actionable = False
+action_set['Single'].actionable = False
+action_set['JobClassIsSkilled'].actionable = False
+action_set['ForeignWorker'].actionable = False
+action_set['OwnsHouse'].actionable = False
+action_set['RentsHouse'].actionable = False
 action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
 action_set['CheckingAccountBalance_geq_0'].step_direction = 1
-# action_set['isMale'].mutable = False
+# action_set['isMale'].actionable = False
 
 ## plot the demographic composition
 # print("...plotting histogram of all X values")
@@ -117,7 +117,7 @@ use_cached_flipset = False
 if not use_cached_flipset:
     coefficients = clf.coef_[0]
     intercept = clf.intercept_[0]
-    action_set.align(coefficients=coefficients)
+    action_set.set_alignment(coefficients=coefficients)
     # p = .8
     p = scores.median()
     denied_individuals = scores.loc[lambda s: s<=p].index
@@ -275,37 +275,37 @@ i = individuals.index[0]
 # i = 815
 i = 818
 action_set = ActionSet(X=X_gender_balanced)
-action_set['Age'].mutable = False
-action_set['Single'].mutable = False
-action_set['JobClassIsSkilled'].mutable = False
-action_set['ForeignWorker'].mutable = False
-action_set['OwnsHouse'].mutable = False
-action_set['RentsHouse'].mutable = False
+action_set['Age'].actionable = False
+action_set['Single'].actionable = False
+action_set['JobClassIsSkilled'].actionable = False
+action_set['ForeignWorker'].actionable = False
+action_set['OwnsHouse'].actionable = False
+action_set['RentsHouse'].actionable = False
 action_set['CriticalAccountOrLoansElsewhere'].step_direction = -1
 action_set['CheckingAccountBalance_geq_0'].step_direction = 1
 
-action_set['NoCurrentLoan'].mutable = False
-action_set['YearsAtCurrentJob_lt_1'].mutable = False
-action_set['YearsAtCurrentHome'].mutable = False
-action_set['SavingsAccountBalance_geq_500'].mutable = False
-action_set['YearsAtCurrentJob_geq_4'].mutable = False
+action_set['NoCurrentLoan'].actionable = False
+action_set['YearsAtCurrentJob_lt_1'].actionable = False
+action_set['YearsAtCurrentHome'].actionable = False
+action_set['SavingsAccountBalance_geq_500'].actionable = False
+action_set['YearsAtCurrentJob_geq_4'].actionable = False
 
 # actions to switch up actionset
-action_set['HasGuarantor'].mutable = False
-action_set['HasCoapplicant'].mutable = False
-action_set['HasTelephone'].mutable = False
-action_set['OtherLoansAtBank'].mutable = False
-# action_set['LoanAmount'].mutable = False
-action_set['LoanRateAsPercentOfIncome'].mutable = False
+action_set['HasGuarantor'].actionable = False
+action_set['HasCoapplicant'].actionable = False
+action_set['HasTelephone'].actionable = False
+action_set['OtherLoansAtBank'].actionable = False
+# action_set['LoanAmount'].actionable = False
+action_set['LoanRateAsPercentOfIncome'].actionable = False
 
-# action_set['LoanDuration'].mutable = False
-# action_set['CheckingAccountBalance_geq_200'].mutable = False
-action_set['NumberOfLiableIndividuals'].mutable = False
-# action_set['SavingsAccountBalance_geq_500'].mutable = False
-# action_set['SavingsAccountBalance_geq_100'].mutable = False
-action_set['Unemployed'].mutable = False
+# action_set['LoanDuration'].actionable = False
+# action_set['CheckingAccountBalance_geq_200'].actionable = False
+action_set['NumberOfLiableIndividuals'].actionable = False
+# action_set['SavingsAccountBalance_geq_500'].actionable = False
+# action_set['SavingsAccountBalance_geq_100'].actionable = False
+action_set['Unemployed'].actionable = False
 
-action_set.align(coefficients=coefficients)
+action_set.set_alignment(coefficients=coefficients)
 
 p = scores.median()
 x = X.values[i]
