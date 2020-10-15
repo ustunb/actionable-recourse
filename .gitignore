@@ -11,6 +11,7 @@ ci_scripts/
 skltemplate/
 
 # other
+dev/
 examples/paper/results
 
 # jekyll
