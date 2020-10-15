@@ -3,7 +3,7 @@ import pandas as pd
 from tqdm.auto import tqdm
 
 from recourse.defaults import DEFAULT_SOLVER
-from recourse.helper_functions import parse_classifier_args
+from recourse.util import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 

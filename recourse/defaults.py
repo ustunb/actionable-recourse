@@ -1,6 +1,8 @@
 # This file contains constants used in actionable-recourse
 
 ### Solver ###
+from pathlib import Path
+
 
 def _check_solver_cpx():
     """
@@ -65,3 +67,6 @@ DEFAULT_FLIPSET_COST_TYPE = 'local'
 
 VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
 DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'
+repo_dir = Path(__file__).absolute().parent.parent
+pkg_dir = Path(__file__).absolute().parent
+test_dir = repo_dir / 'tests'

@@ -2,7 +2,7 @@ import seaborn as sns
 import numpy as np
 
 # X is the data to audit on
-def print_recourse_audit_report(X, audit_df, y, group_by = ['y']):w
+def print_recourse_audit_report(X, audit_df, y, group_by = ['y']):
 
     processed_data = (audit_df
                             .merge(X, right_index=True, left_index=True)
@@ -22,9 +22,8 @@ def print_recourse_audit_report(X, audit_df, y, group_by = ['y']):w
 #     rows that are certified to have no recourse have entries: feasible = False & cost = Inf`
 
     # DELIVERABLES
-
     print("Stats: ")
-    print("Audit Dataset Size: %s"%(processed_data.shape[0]))
+    print("Audit Dataset Size: %s"% (processed_data.shape[0]))
 
     y_val = list(set(y))
     for y in y_val:

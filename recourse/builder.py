@@ -4,13 +4,13 @@ from itertools import chain
 from collections import defaultdict
 from recourse.defaults import *
 from recourse.defaults import _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
-from recourse.helper_functions import parse_classifier_args
+from recourse.util import parse_classifier_args
 from recourse.action_set import ActionSet
 import numpy as np
 
 # todo the next imports to defaults so that we remove solver from SUPPORTED_SOLVERS if they don't exist
 try:
-    from recourse.cplex_helper import Cplex, SparsePair, set_cpx_parameters, set_cpx_display_options, set_cpx_time_limit, set_cpx_node_limit, toggle_cpx_preprocessing, DEFAULT_CPLEX_PARAMETERS
+    from recourse.util_cplex import Cplex, SparsePair, set_cpx_parameters, set_cpx_display_options, set_cpx_time_limit, set_cpx_node_limit, toggle_cpx_preprocessing, DEFAULT_CPLEX_PARAMETERS
 except ImportError:
     pass
 

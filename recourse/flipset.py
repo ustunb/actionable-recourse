@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from recourse.helper_functions import parse_classifier_args
+from recourse.util import parse_classifier_args
 from recourse.action_set import ActionSet
 from recourse.builder import RecourseBuilder
 from recourse.defaults import VALID_MIP_COST_TYPES, VALID_ENUMERATION_TYPES, DEFAULT_SOLVER

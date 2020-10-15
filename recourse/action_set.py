@@ -4,7 +4,7 @@ import pandas as pd
 import itertools
 from collections import namedtuple
 from prettytable import PrettyTable
-from recourse.helper_functions import parse_classifier_args
+from recourse.util import parse_classifier_args
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
