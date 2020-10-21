@@ -1,6 +1,9 @@
 # PyCharm
 .idea/
 
+# sphinx
+docs/_build
+
 # scikit-learn
 doc/
 doc/_build/

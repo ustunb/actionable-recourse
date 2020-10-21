@@ -5,7 +5,4 @@ Installation
    :maxdepth: 2
    :caption: Code
 
-   
-   auditor
-   flipset
-   builder
+   cplex_installation
