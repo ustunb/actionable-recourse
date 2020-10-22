@@ -1,44 +1,40 @@
-`actionable-recourse` is a python library for recourse verification and reporting. 
+recourse
+=================== 
 
-## Recourse in Machine Learning?
+`recourse` is a python library for recourse verification and reporting. 
 
+### Recourse in Machine Learning
 
-*Recourse* is the ability of a person to change the prediction of a machine learning model by altering *actionable* input variables – e.g., `income` and `n_credit_cards` as opposed to `age` or `alma_mater`.
+Recourse is the ability to change the prediction of a machine learning model by altering *actionable* input variables – e.g., `savings` and `n_credit_cards` as opposed to `age`. Recourse is an essential aspect of fairness in consumer-facing ML. When a person is denied a loan by a machine learning model, for example, they should be able to change its input variables in order to be approved. Otherwise, they will lack the ability to influence a decision that affects their livelihood.
 
-Recourse is an essential aspect of procedural fairness in consumer-facing applications of machine learning. When a consumer is denied a loan by a machine learning model, for example, they should be able to change the input variables of the model in a way that guarantees approval. Otherwise, this person will be denied the loan so long as the model is deployed, and stripped of the ability to influence a decision that affects their livelihood. 
+#### Overview
 
-## Verification & Reporting
+This library provides tools to protect recourse by reporting and verification. The tools current support linear classifiers. We will extend the toolkit to support other kinds of models over time.
 
-This library provides protect consumers against this harm through verification and reporting. These tools can be used to answer questions like:
+**Reporting**: The goal of recourse reporting is to present individuals who receive an unfavorable prediction from a machine learning models with an actions that they can prediction from a given machine learning model. What can a person do to obtain a favorable prediction from a ML model? Generate a list of actions that can be used to flip the prediction of a model.
 
-- What can a person do to obtain a favorable prediction from a given model?
-- How many people can change their prediction?
-- How difficult for people to change their prediction?
- 
-Specific functionality includes:
+**Verification**: The goal of recourse verification is to ensure that a model will provide its decision-subjects with a way to flip their predictions. We wish to answer how many people can change their prediction? How difficult for people to change their prediction? Estimate the feasibility and difficulty of recourse of a model on a population of interest.
 
-- Customize the set of feasible action for each input variable of an machine learning model.
-- Produce a list of actionable changes for a person to flip the prediction of a model.
-- Estimate the feasibility of recourse of a model on a population of interest.
-- Evaluate the difficulty of recourse of a model on a population of interest.
-
-The tools are currently designed to support linear classification models, and will be extended to cover other kinds of models over time. 
+Customize the set of feasible action for each input variable of a machine learning model.
 
 ----
 
 ## Installation
 
-You can install the library via `pip`.
+Install with `pip` from PyPI:
+
 ```
-$ pip install actionable-recourse
+pip install recourse
 ```
 
-### Requirements
+It requires Python 3 and one of the following mixed-integer programming packages: 
+ 
+- [Python-MIP](http://python-mip.com/) – Python-MIP is an open-source MIP library that supports multiple solvers. It uses the [CBC]() solver by default, and can support commercial solvers like Gurobi. 
 
-- Python 3
-- Python-MIP and/or CPLEX (see [here](docs/cplex_installation.md) for instructions on how to download and install CPLEX)
+- CPLEX – is a commercial MIP solver with a Python API that is free for academic use. See [here](docs/cplex_installation.md) for instructions on how to obtain and install CPLEX.
 
-### Usage
+## Usage
+
 ```
 import pandas as pd
 import numpy as np
@@ -99,15 +95,10 @@ print_recourse_audit_report(X, audit_df, y)
 
 ```
 
-## Contributing
+### Contributing
 
-We're actively working to improve this package and make it more useful. If you come across bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info on how to contribute, check out [these guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
+We're actively working to improve this package. If you find bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info, see [our guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
 
+### Resources
 
-## Resources
-
-For more about recourse, check out our paper:
-
-[Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514)
-
-If you use actionable-recourse for your research, we would appreciate a citation ([bibtex](/docs/references/ustun2019recourse.bibtex))!
+For more about recourse, check out our paper [Actionable Recourse in Linear Classification](https://arxiv.org/abs/1809.06514). If you use actionable-recourse in your research, we would appreciate a citation ([bibtex](/docs/references/ustun2019recourse.bibtex))!
