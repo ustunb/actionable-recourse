@@ -1,6 +1,9 @@
 # PyCharm
 .idea/
 
+# sphinx
+docs/_build
+
 # scikit-learn
 doc/
 doc/_build/
@@ -11,6 +14,7 @@ ci_scripts/
 skltemplate/
 
 # other
+dev/
 examples/paper/results
 
 # jekyll
