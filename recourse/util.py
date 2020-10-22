@@ -72,3 +72,68 @@ def parse_classifier_args(*args, **kwargs):
     assert np.isfinite(w).all()
     assert np.isfinite(t)
     return w, t
+
+
+def check_variable_names(names):
+    """
+    checks variable names
+    :param names: list of names for each feature in a dataset.
+    :return:
+    """
+    assert isinstance(names, list), '`names` must be a list'
+    assert all([isinstance(n, str) for n in names]), '`names` must be a list of strings'
+    assert len(names) >= 1, '`names` must contain at least 1 element'
+    assert all([len(n) > 0 for n in names]), 'elements of `names` must have at least 1 character'
+    assert len(names) == len(set(names)), 'elements of `names` must be distinct'
+    return True
+
+
+def determine_variable_type(values, name=None):
+    for v in values:
+        if isinstance(v, str):
+            raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
+    integer_valued = np.equal(np.mod(values, 1), 0).all()
+    if integer_valued:
+        if np.isin(values, (0, 1)).all():
+            return bool
+        else:
+            return int
+    else:
+        return float
+
+
+def expand_values(value, m):
+
+    if isinstance(value, np.ndarray):
+
+        if len(value) == m:
+            value_array = value
+        elif value.size == 1:
+            value_array = np.repeat(value, m)
+        else:
+            raise ValueError("length mismatch; need either 1 or %d values" % m)
+
+    elif isinstance(value, list):
+        if len(value) == m:
+            value_array = value
+        elif len(value) == 1:
+            value_array = [value] * m
+        else:
+            raise ValueError("length mismatch; need either 1 or %d values" % m)
+
+    elif isinstance(value, str):
+        value_array = [str(value)] * m
+
+    elif isinstance(value, bool):
+        value_array = [bool(value)] * m
+
+    elif isinstance(value, int):
+        value_array = [int(value)] * m
+
+    elif isinstance(value, float):
+        value_array = [float(value)] * m
+
+    else:
+        raise ValueError("unknown variable type %s")
+
+    return value_array

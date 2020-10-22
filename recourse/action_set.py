@@ -4,7 +4,7 @@ import pandas as pd
 import itertools
 from collections import namedtuple
 from prettytable import PrettyTable
-from recourse.util import parse_classifier_args
+from recourse.util import parse_classifier_args, check_variable_names, determine_variable_type, expand_values
 from scipy.stats import gaussian_kde as kde
 from scipy.interpolate import interp1d
 
@@ -61,7 +61,7 @@ class ActionSet(object):
             X = X.values
 
         # validate names
-        assert _check_variable_names(names)
+        assert check_variable_names(names)
 
         # validate X
         xdim = X.shape
@@ -82,7 +82,7 @@ class ActionSet(object):
         elements = {}
         for j, n in enumerate(names):
             indices[n] = j
-            variable_type = _determine_variable_type(values = X[:, j])
+            variable_type = determine_variable_type(values = X[:, j])
             if variable_type == bool:
                 elements[n] = _ActionElement(name = n, values = X[:, j], step_type = 'absolute', step_size = 1, variable_type = bool, bounds = custom_bounds.get(n, (0, 1, 'absolute')))
             elif variable_type == int:
@@ -147,7 +147,7 @@ class ActionSet(object):
 
     def __setattr__(self, name, value):
         if hasattr(self, '_elements') and hasattr(_ActionElement, name):
-            attr_values = _expand_values(value, len(self))
+            attr_values = expand_values(value, len(self))
             for n, j in self._indices.items():
                 self._elements[n].__setattr__(name, attr_values[j])
         else:
@@ -457,7 +457,7 @@ class _ActionConstraints(object):
         assert len(id) > 0
 
         # parse variable names
-        assert _check_variable_names(names)
+        assert check_variable_names(names)
         assert 2 <= len(names) <= self._n_variables
         indices = [self._names.index(n) for n in names]
 
@@ -618,7 +618,7 @@ class _ActionElement(object):
     @variable_type.setter
     def variable_type(self, variable_type):
         if variable_type is None:
-            self._variable_type = _determine_variable_type(self._values, self._name)
+            self._variable_type = determine_variable_type(self._values, self._name)
         else:
             assert variable_type in self._valid_variable_types
             self._variable_type = variable_type
@@ -908,7 +908,7 @@ class _BoundElement(object):
         # set variable type
         if variable_type is None:
             assert values is not None
-            variable_type = _determine_variable_type(values)
+            variable_type = determine_variable_type(values)
         else:
             assert variable_type in self._valid_variable_types
         self._variable_type = variable_type
@@ -1025,7 +1025,7 @@ class _ActionSlice(object):
             object.__setattr__(self, name, value)
         else:
             assert hasattr(_ActionElement, name)
-            attr_values = _expand_values(value, len(self._indices))
+            attr_values = expand_values(value, len(self._indices))
             for n, j in self._indices.items():
                 setattr(self._elements[n], name, attr_values[j])
 
@@ -1039,71 +1039,7 @@ class _ActionSlice(object):
         return str(self)
 
 
-#### Helper Functions ####
-def _check_variable_names(names):
-    """
-    checks variable names
-    :param names: list of names for each feature in a dataset.
-    :return:
-    """
-    assert isinstance(names, list), '`names` must be a list'
-    assert all([isinstance(n, str) for n in names]), '`names` must be a list of strings'
-    assert len(names) >= 1, '`names` must contain at least 1 element'
-    assert all([len(n) > 0 for n in names]), 'elements of `names` must have at least 1 character'
-    assert len(names) == len(set(names)), 'elements of `names` must be distinct'
-    return True
-
-
-def _determine_variable_type(values, name=None):
-    for v in values:
-        if isinstance(v, str):
-            raise ValueError(">=1 elements %s are of type str" % ("in '%s'" % name if name else ''))
-    integer_valued = np.equal(np.mod(values, 1), 0).all()
-    if integer_valued:
-        if np.isin(values, (0, 1)).all():
-            return bool
-        else:
-            return int
-    else:
-        return float
-
-
-def _expand_values(value, m):
-
-    if isinstance(value, np.ndarray):
-
-        if len(value) == m:
-            value_array = value
-        elif value.size == 1:
-            value_array = np.repeat(value, m)
-        else:
-            raise ValueError("length mismatch; need either 1 or %d values" % m)
-
-    elif isinstance(value, list):
-        if len(value) == m:
-            value_array = value
-        elif len(value) == 1:
-            value_array = [value] * m
-        else:
-            raise ValueError("length mismatch; need either 1 or %d values" % m)
-
-    elif isinstance(value, str):
-        value_array = [str(value)] * m
-
-    elif isinstance(value, bool):
-        value_array = [bool(value)] * m
-
-    elif isinstance(value, int):
-        value_array = [int(value)] * m
-
-    elif isinstance(value, float):
-        value_array = [float(value)] * m
-
-    else:
-        raise ValueError("unknown variable type %s")
-
-    return value_array
-
+#### Helper Functions for Reporting ####
 
 def tabulate_actions(action_set):
     """
