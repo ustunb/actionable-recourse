@@ -1,4 +1,4 @@
-Recourse Auditor
+Auditor
 =================
 .. automodule:: recourse.auditor
    :members:

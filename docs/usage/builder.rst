@@ -1,4 +1,4 @@
-Recourse Builder
+Builder
 ===================
 .. automodule:: recourse.builder
    :members:

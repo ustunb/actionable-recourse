@@ -1,4 +1,4 @@
-Recourse ActionSet
+ActionSet
 =====================
 .. automodule:: recourse.action_set
    :members:

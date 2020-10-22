@@ -14,7 +14,6 @@ Welcome to Actionable Recourse's documentation!
    usage/code_tree
 
 
-
 Indices and tables
 ==================
 
