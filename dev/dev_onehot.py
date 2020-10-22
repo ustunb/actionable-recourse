@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse import ActionSet, RecourseBuilder
-from recourse.defaults import _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
-from recourse.paths import test_dir
+from recourse.defaults import _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP, \
+    test_dir
 
 data_name = 'german'
 data_file = test_dir / ('%s_processed.csv' % data_name)
