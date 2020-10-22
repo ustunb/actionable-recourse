@@ -32,9 +32,6 @@ A['TotalMonthsOverdue'].step_size = 1  ## set step-size to a custom value.
 A['TotalMonthsOverdue'].step_type = "absolute"  ## discretize on absolute values of feature rather than percentile values
 A['TotalMonthsOverdue'].bounds = (0, 100)  ## set bounds to a custom value.
 
-## get model coefficients and _align
-A._align(clf)  ## tells `ActionSet` which directions each feature should move in to produce positive change.
-
 # Get one individual
 i = np.flatnonzero(yhat <= 0).astype(int)[0]
 
