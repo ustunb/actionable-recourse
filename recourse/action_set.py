@@ -247,17 +247,23 @@ class ActionSet(object):
         y = int(y)
         if y != self._y_desired:
             self._y_desired = 1 if y > 0 else -1
-            # if classifier was aligned, then re-set_alignment the classifier
+            # if classifier was aligned, then re-_align the classifier
             if self.alignment_known:
                 for n, j in self._indices.items():
                     self._elements[n].flip_direction = -self._elements[n].flip_direction
 
 
-    def set_alignment(self, *args, **kwargs):
+    def _align(self, *args, **kwargs):
         """
-        uses a classifier to determine the "alignment" of actions on each variable
-        if the coefficient for variable j is positive, then actions that increase variable j will flip prediction
-        if the coefficient for variable j is negative, then actions that decrease variable j will flip prediction
+        internal method that - given a classifier - will determine a direction that each variable has to change in order to flip a prediction
+
+        The alignment direction for variable j is stored internally as the "flip_direction"
+
+        Given w[j] = coefficient for variable j.
+
+        - If w[j] > 0, then actions that increase variable j will flip prediction -> flip_direction[j] = 1
+        - If w[j] < 0, then actions that decrease variable j will flip prediction -> flip_direction[j] = -1
+
         :param scikit-learn classifier object, or vector of coefficients
         :return:None
         """

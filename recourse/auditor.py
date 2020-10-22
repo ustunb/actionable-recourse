@@ -35,8 +35,8 @@ class RecourseAuditor(object):
         # attach coefficients
         self.coefficients, self.intercept = parse_classifier_args(**kwargs)
 
-        # set_alignment coefficients to action set
-        self.action_set.set_alignment(self.coefficients)
+        # _align coefficients to action set
+        self.action_set._align(self.coefficients)
 
         # set solver
         self.solver = kwargs.get('solver', DEFAULT_SOLVER)
@@ -83,6 +83,7 @@ class RecourseAuditor(object):
         else:
             raw_index = list(range(X.shape[0]))
 
+        #todo add assert
         assert isinstance(X, np.ndarray)
         assert X.ndim == 2
         assert X.shape[0] >= 1

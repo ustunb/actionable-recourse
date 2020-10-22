@@ -60,7 +60,7 @@ class RecourseBuilder(object):
         assert isinstance(action_set, ActionSet)
         assert len(action_set) == len(self._coefficients)
         if not action_set.alignment_known:
-            action_set.set_alignment(self._coefficients)
+            action_set._align(self._coefficients)
 
         self._action_set = action_set
 
