@@ -21,8 +21,8 @@ class ActionSet(object):
     Class to represent and manipulate feasible actions for the features in a dataset
     """
 
-    _default_print_flag = True
     _default_check_flag = True
+    _default_print_flag = 1
     _default_bounds = (1, 99, 'percentile')
     _default_step_type = 'relative'
 
@@ -160,12 +160,14 @@ class ActionSet(object):
 
     def __repr__(self):
         if self._print_flag:
-            return str(self)
+            return tabulate_actions(self, level = self._print_flag)
+        else:
+            return ''
 
     ### validation ###
     @property
     def check_flag(self):
-        return bool(self._check_flag)
+        return self._check_flag
 
 
     @check_flag.setter
@@ -186,17 +188,19 @@ class ActionSet(object):
     ### printing ###
     @property
     def print_flag(self):
-        return bool(self._print_flag)
+        return self._print_flag
 
 
     @print_flag.setter
     def print_flag(self, flag):
         if flag is None:
-            self._print_flag = bool(ActionSet._default_print_flag)
-        elif isinstance(flag, bool):
-            self._print_flag = bool(flag)
+            self._print_flag = int(ActionSet._default_print_flag)
+        elif isinstance(flag, (bool, int)):
+            flag = int(flag)
+            assert flag in (0, 1, 2), 'invalid print_flag'
+            self._print_flag = int(flag)
         else:
-            raise AttributeError('print_flag must be boolean or None')
+            raise AttributeError('print_flag must a positive integer between 0 to 2')
 
 
     @property
@@ -271,7 +275,6 @@ class ActionSet(object):
         flips = np.sign(coefs) if self._y_desired > 0 else -np.sign(coefs)
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
-
 
 
     #### grid generation  ####
@@ -1040,27 +1043,52 @@ class _ActionSlice(object):
 
 
 #### Helper Functions for Reporting ####
+_VARIABLE_TYPE_STRINGS = {bool:'bool', int:'int', float: 'float'}
 
-def tabulate_actions(action_set):
+def tabulate_actions(action_set, level = 1):
     """
     prints a table with information about each element in the action set
     :param action_set: ActionSet object
+    :param level: logging level, set to 1 or 2
+                level = 1: basic information about action set (default)
+                level = 2: includes information for debugging and dev
     :return:
     """
-    assert isinstance(action_set, ActionSet)
+    assert isinstance(action_set, ActionSet), "invalid action_set"
+    assert isinstance(level, int) and level >= 0, 'level must be a positive integer >= 1'
 
     t = PrettyTable()
-    t.add_column("name", action_set.name, align = "r")
-    t.add_column("variable type", action_set.variable_type, align = "r")
-    t.add_column("actionable", action_set.actionable, align = "r")
-    t.add_column("compatible", action_set.compatible, align = "r")
-    t.add_column("step direction", action_set.step_direction, align = "r")
-    t.add_column("flip direction", action_set.flip_direction, align = "r")
-    t.add_column("grid size", action_set.size, align = "r")
-    t.add_column("step type", action_set.step_type, align = "r")
-    t.add_column("step size", action_set.step_size, align = "r")
-    t.add_column("lb", action_set.lb, align = "r")
-    t.add_column("ub", action_set.ub, align = "r")
+    vtypes = [_VARIABLE_TYPE_STRINGS[v] for v in action_set.variable_type]
+
+    if level == 1:
+
+        t.add_column("name", action_set.name, align = "r")
+        t.add_column("variable type", vtypes, align = "r")
+        t.add_column("actionable", action_set.actionable, align = "r")
+        t.add_column("lb", action_set.lb, align = "r")
+        t.add_column("ub", action_set.ub, align = "r")
+        #t.add_column("compatible", action_set.compatible, align = "r")
+        t.add_column("step direction", action_set.step_direction, align = "r")
+        #t.add_column("flip direction", action_set.flip_direction, align = "r")
+        #t.add_column("grid size", action_set.size, align = "r")
+        t.add_column("step type", action_set.step_type, align = "r")
+        t.add_column("step size", action_set.step_size, align = "r")
+
+
+    elif level > 1:
+
+        t.add_column("name", action_set.name, align = "r")
+        t.add_column("variable type", vtypes, align = "r")
+        t.add_column("actionable", action_set.actionable, align = "r")
+        t.add_column("lb", action_set.lb, align = "r")
+        t.add_column("ub", action_set.ub, align = "r")
+        t.add_column("compatible", action_set.compatible, align = "r")
+        t.add_column("flip direction", action_set.flip_direction, align = "r")
+        t.add_column("step direction", action_set.step_direction, align = "r")
+        t.add_column("step type", action_set.step_type, align = "r")
+        t.add_column("step size", action_set.step_size, align = "r")
+        t.add_column("grid size", action_set.size, align = "r")
+
     return str(t)
 
 
