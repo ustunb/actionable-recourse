@@ -248,9 +248,8 @@ class ActionSet(object):
         if y != self._y_desired:
             self._y_desired = 1 if y > 0 else -1
             # if classifier was aligned, then re-_align the classifier
-            if self.alignment_known:
-                for n, j in self._indices.items():
-                    self._elements[n].flip_direction = -self._elements[n].flip_direction
+            for n, j in self._indices.items():
+                self._elements[n].flip_direction = -self._elements[n].flip_direction
 
 
     def _align(self, *args, **kwargs):
@@ -273,13 +272,6 @@ class ActionSet(object):
         for n, j in self._indices.items():
             self._elements[n].flip_direction = flips[j]
 
-
-    @property
-    def alignment_known(self):
-        """
-        :return: True if action set has been aligned to a model
-        """
-        return all([e.aligned for e in self._elements.values()])
 
 
     #### grid generation  ####
@@ -419,7 +411,6 @@ class _ActionConstraints(object):
         # choose unique names
         names = set(itertools.chain.from_iterable(names))
         return names
-
 
     def remove(self, id):
         """
