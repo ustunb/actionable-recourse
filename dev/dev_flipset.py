@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from recourse.paths import *
+
+from recourse.defaults import test_dir
 from recourse.action_set import ActionSet
 from recourse.flipset import Flipset
 

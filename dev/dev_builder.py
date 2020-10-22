@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from recourse.paths import *
+
+from recourse.defaults import test_dir
 from recourse.builder import RecourseBuilder, _SOLVER_TYPE_PYTHON_MIP, _SOLVER_TYPE_CPX
 from recourse.action_set import ActionSet
 import numpy as np

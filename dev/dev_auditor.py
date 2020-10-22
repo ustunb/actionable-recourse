@@ -1,6 +1,7 @@
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from recourse.paths import *
+
+from recourse.defaults import test_dir
 from recourse.auditor import RecourseAuditor
 from recourse.action_set import ActionSet
 
