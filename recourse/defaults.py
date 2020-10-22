@@ -1,9 +1,12 @@
-# This file contains constants used in actionable-recourse
+# This file contains constants used in recourse
+
+# Paths
+from pathlib import Path
+repo_dir = Path(__file__).absolute().parent.parent
+pkg_dir = Path(__file__).absolute().parent
+test_dir = repo_dir / 'tests'
 
 ### Solver ###
-from pathlib import Path
-
-
 def _check_solver_cpx():
     """
     :return: True if CPLEX if installed
@@ -65,8 +68,5 @@ DEFAULT_FLIPSET_COST_TYPE = 'local'
 
 ### Enumeration Types ###
 
-VALID_ENUMERATION_TYPES = {'mutually_exclusive', 'distinct_subsets'}
+VALID_ENUMERATION_TYPES = ('mutually_exclusive', 'distinct_subsets')
 DEFAULT_ENUMERATION_TYPE = 'distinct_subsets'
-repo_dir = Path(__file__).absolute().parent.parent
-pkg_dir = Path(__file__).absolute().parent
-test_dir = repo_dir / 'tests'
