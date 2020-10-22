@@ -139,7 +139,7 @@ for dataset in ['full', 'downsampled']:
     action_set['NumberOfDependents'].actionable = False
     action_set['DebtRatio'].step_direction = -1
     # action_set['NumberOfTime60-89DaysPastDueNotWorse'].step_direction = -1
-    action_set.set_alignment(coefficients=coefficients[dataset])
+    action_set._align(coefficients=coefficients[dataset])
 
     idx = 0
     flipsets = {}
@@ -196,7 +196,7 @@ action_set['NumberOfTime60-89DaysPastDueNotWorse'].actionable = False
 # action_set['RevolvingUtilizationOfUnsecuredLines'].actionable = False
 # action_set['NumberOfOpenCreditLinesAndLoans'].actionable = False
 # action_set['NumberRealEstateLoansOrLines'].actionable = False
-action_set.set_alignment(coefficients=coefficients[dataset])
+action_set._align(coefficients=coefficients[dataset])
 
 p = .97
 x = X.values[i]

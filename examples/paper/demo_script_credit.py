@@ -90,7 +90,7 @@ all_models = model_stats.pop('all_models')
 clf = all_models['C_0.02__max_iter_1000__penalty_l1__solver_saga__tol_1e-08']
 yhat = clf.predict(X = data['X_train'])
 coefficients, intercept = undo_coefficient_scaling(clf, scaler = data['scaler'])
-action_set.set_alignment(coefficients)
+action_set._align(coefficients)
 predicted_neg = np.flatnonzero(yhat < 1)
 U = data['X'].iloc[predicted_neg].values
 k = 4

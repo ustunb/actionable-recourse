@@ -274,7 +274,7 @@ def get_flipset_solutions(model, data, action_set, mip_cost_type = 'max', scaler
         yhat = model.predict(data['X'])
         coefficients, intercept = np.array(model.coef_).flatten(), model.intercept_[0]
 
-    action_set.set_alignment(coefficients)
+    action_set._align(coefficients)
 
     # get defaults
     audit_results = []

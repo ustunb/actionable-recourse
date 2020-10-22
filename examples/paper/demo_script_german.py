@@ -117,7 +117,7 @@ use_cached_flipset = False
 if not use_cached_flipset:
     coefficients = clf.coef_[0]
     intercept = clf.intercept_[0]
-    action_set.set_alignment(coefficients=coefficients)
+    action_set._align(coefficients=coefficients)
     # p = .8
     p = scores.median()
     denied_individuals = scores.loc[lambda s: s<=p].index
@@ -305,7 +305,7 @@ action_set['NumberOfLiableIndividuals'].actionable = False
 # action_set['SavingsAccountBalance_geq_100'].actionable = False
 action_set['Unemployed'].actionable = False
 
-action_set.set_alignment(coefficients=coefficients)
+action_set._align(coefficients=coefficients)
 
 p = scores.median()
 x = X.values[i]
