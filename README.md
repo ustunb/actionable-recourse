@@ -1,19 +1,21 @@
 recourse
 =================== 
 
-`recourse` is a python library for recourse verification and reporting. 
+`recourse` is a python library to protect and provide recourse in machine learning.  
 
 ### Recourse in ML
 
-Recourse is the ability to change the prediction of a machine learning model by altering *actionable* input variables – e.g., `savings` and `n_credit_cards` as opposed to `age`. Recourse is an essential aspect of fairness in consumer-facing ML. When a person is denied a loan by a machine learning model, for example, they should be able to change its input variables in order to be approved. Otherwise, they will lack the ability to influence a decision that affects their livelihood.
+Recourse is the ability to change the prediction of a machine learning model by changing *actionable* variables – e.g., `savings` and `n_credit_cards` as opposed to `age`. 
+
+Recourse is an essential aspect of fairness in consumer-facing ML. When a person is denied a loan by a machine learning model, they should be able to change its input variables to be approved. Otherwise, they will be unable to influence a decision that affects their livelihood.
 
 #### Overview
 
-This library provides tools to protect recourse by reporting and verification. The tools currently support linear classifiers. We will extend the toolkit to support other kinds of models over time.
+This library provides tools to protect and provide recourse. The tools currently support linear classification models, but will be extended to support other kinds of models over time.
 
-**Reporting**: The goal of recourse reporting is to present individuals who receive an unfavorable prediction from a machine learning models with an actions that they can prediction from a given machine learning model. What can a person do to obtain a favorable prediction from a ML model? Generate a list of actions that can be used to flip the prediction of a model.
+**Reporting Tools**: The goal of recourse reporting is to present individuals who receive an unfavorable prediction from a machine learning models with an actions that they can prediction from a given machine learning model. What can a person do to obtain a favorable prediction from a ML model? Generate a list of actions that can be used to flip the prediction of a model.
 
-**Verification**: The goal of recourse verification is to ensure that a model will provide its decision-subjects with a way to flip their predictions. We wish to answer how many people can change their prediction? How difficult for people to change their prediction? Estimate the feasibility and difficulty of recourse of a model on a population of interest.
+**Verification Tools**: The goal of recourse verification is to ensure that a model will provide its decision-subjects with a way to flip their predictions. We wish to answer how many people can change their prediction? How difficult for people to change their prediction? Estimate the feasibility and difficulty of recourse of a model on a population of interest.
 
 Customize the set of feasible action for each input variable of a machine learning model.
 
@@ -55,10 +57,10 @@ yhat = clf.predict(X)
 A = rs.ActionSet(X)  ## matrix of features. ActionSet will set bounds and step sizes by default
 
 # specify immutable variables
-A['Married'].mutable = False
+A['Married'].actionable = False
 
 # can only specify properties for multiple variables using a list
-A[['Age_lt_25', 'Age_in_25_to_40', 'Age_in_40_to_59', 'Age_geq_60']].mutable = False
+A[['Age_lt_25', 'Age_in_25_to_40', 'Age_in_40_to_59', 'Age_geq_60']].actionable = False
 
 # education level
 A['EducationLevel'].step_direction = 1  ## force conditional immutability.
@@ -83,12 +85,12 @@ print(audit_df['feasible'].mean()) # feasibility of recourse
 print(audit_df['cost'].mean()) # cost of recourse
 
 # create a report showing the feasibility and cost of recourse per group
-# print_recourse_audit_report(X, audit_df, y, group_by = ['y', 'Married', 'EducationLevel'])
+# print_recourse_audit_report(X, y, df = audit_df, group_by = ['y', 'Married', 'EducationLevel'])
 ```
 
 ### Contributing
 
-We're actively working to improve this package. If you find bugs, have comments, or want to help, let us know. We welcome any and all contributions! For more info, see [our guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
+We welcome any and all contributions! If you find bugs, have comments, or want to help, let us know! For more info, see [our guidelines](https://github.com/ustunb/actionable-recourse/blob/master/CONTRIBUTING.md). Thank you community!
 
 ### Resources
 
