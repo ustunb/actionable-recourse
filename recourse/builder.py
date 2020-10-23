@@ -98,7 +98,7 @@ class RecourseBuilder(object):
             assert self.n_variables == len(self._action_set)
             assert self._x is None or self.n_variables == len(self._x)
             assert isinstance(self._intercept, float)
-            assert self.action_set.alignment_known
+            assert all(self.action_set.aligned)
             assert 0 <= self._min_items <= self._max_items <= self.n_variables
         return True
 
