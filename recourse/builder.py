@@ -170,7 +170,7 @@ class RecourseBuilder(object):
     #### feature values ####
     @property
     def x(self):
-        return np.array(self._x)
+        return self._x
 
 
     @x.setter
@@ -189,7 +189,7 @@ class RecourseBuilder(object):
 
     @property
     def intercept(self):
-        return float(self._intercept)
+        return self._intercept
 
 
     def score(self, x = None):
@@ -303,7 +303,7 @@ class RecourseBuilder(object):
 
     @property
     def min_items(self):
-        return int(self._min_items)
+        return self._min_items
 
 
     @min_items.setter
@@ -318,7 +318,7 @@ class RecourseBuilder(object):
 
     @property
     def max_items(self):
-        return int(self._max_items)
+        return self._max_items
 
 
     @max_items.setter
