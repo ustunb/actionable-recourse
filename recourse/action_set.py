@@ -255,6 +255,7 @@ class ActionSet(object):
             for n, j in self._indices.items():
                 self._elements[n].flip_direction = -self._elements[n].flip_direction
 
+    #### grid generation  ####
 
     def _align(self, *args, **kwargs):
         """
@@ -277,8 +278,7 @@ class ActionSet(object):
             self._elements[n].flip_direction = flips[j]
 
 
-    #### grid generation  ####
-    def feasible_grid(self, x, return_actions = True, return_percentiles = True, return_compatible = True):
+    def _feasible_grid(self, x, return_actions = True, return_percentiles = True, return_compatible = True):
         """
         returns feasible features when features are x
         :param x: list or np.array containing vector of feature values (must have same length as ActionSet)
@@ -295,7 +295,6 @@ class ActionSet(object):
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items() if self._elements[n].compatible}
         else:
             output = {n: self._elements[n].feasible_values(x[j], return_actions, return_percentiles) for n, j in self._indices.items()}
-
 
         if len(self.constraints) > 0:
             # if x[j] is included in a subset limit constraint, and x[j] = 1, then we must include actions to decrease a[j]
