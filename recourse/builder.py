@@ -827,7 +827,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
     @property
     def solution_info(self):
 
-        assert hasattr(self._mip, 'solution')
+        assert hasattr(self._mip, 'solution'), 'RecourseBuilder has not been solved yet'
         mip = self._mip
         sol = mip.solution
         info = self._empty_mip_solution_info
@@ -865,7 +865,9 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 #
                 'iterations': sol.progress.get_num_iterations(),
                 'nodes_processed': sol.progress.get_num_nodes_processed(),
-                'nodes_remaining': sol.progress.get_num_nodes_remaining()
+                'nodes_remaining': sol.progress.get_num_nodes_remaining(),
+                #
+                'solution': sol.get_values(),
                 })
 
             if self.mip_cost_type == 'max':
@@ -927,7 +929,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
         """
 
         mip = self._mip
-        #feature_off_idxs = self._mip_indices['action_off_names']
 
         # todo: revisit this constraint
         """
@@ -942,7 +943,6 @@ class _RecourseBuilderCPX(RecourseBuilder):
 
         feature_off_idxs = self._mip_indices['nullify_ind_names']
         feature_off_vals = np.array(mip.solution.get_values(feature_off_idxs))
-
 
         ## if the "off index" are off (i.e. = 0), that means the action is "on"
         on_idx = np.isclose(feature_off_vals, 0.0)
