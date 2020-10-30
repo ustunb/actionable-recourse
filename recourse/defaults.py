@@ -2,8 +2,8 @@
 
 # Paths
 from pathlib import Path
-repo_dir = Path(__file__).absolute().parent.parent
 pkg_dir = Path(__file__).absolute().parent
+repo_dir = pkg_dir.parent
 test_dir = repo_dir / 'tests'
 
 ### Solver ###
