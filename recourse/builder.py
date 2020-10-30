@@ -941,25 +941,41 @@ class _RecourseBuilderCPX(RecourseBuilder):
         """
 
         feature_off_idxs = self._mip_indices['nullify_ind_names']
-        u = np.array(mip.solution.get_values(feature_off_idxs))
+        feature_off_vals = np.array(mip.solution.get_values(feature_off_idxs))
 
 
         ## if the "off index" are off (i.e. = 0), that means the action is "on"
-        on_idx = np.isclose(u, 0.0)
+        on_idx = np.isclose(feature_off_vals, 0.0)
 
         ## array where con_val[i] = 1 if feature is off, -1 if feature is on.
         con_vals = np.ones(len(feature_off_idxs), dtype = np.float_)
         con_vals[on_idx] = -1.0
 
         ## one minus number of features that are off.
-        con_rhs =  np.sum(~on_idx) - 1
-        mip.linear_constraints.add(lin_expr = [SparsePair(ind = feature_off_idxs, val = con_vals.tolist())],
-                                   senses = ["L"],
-                                   rhs = [float(con_rhs)])
+        cons = {
+            'lin_expr': [SparsePair(ind = feature_off_idxs, val = con_vals.tolist())],
+            'senses': ['L'],
+            'rhs': [np.sum(~on_idx) - 1.0],
+        }
+
+        # add constraint to ensure that
+        # sum_{a[j] != 0, k[j]} u[j][k] <  |a[j] != 0| - 1
+        u_names = self._mip_indices['action_ind_names']
+        u = mip.solution.get_values(u_names)
+        u_names_altered = [u_names[k] for k in np.flatnonzero(u)]
+        u_names_altered_nnz = list(set(u_names_altered) - set(feature_off_idxs))
+        n_altered_nnz = len(u_names_altered_nnz)
+
+        cons['lin_expr'].append(SparsePair(ind = u_names_altered_nnz, val = [1.0] * n_altered_nnz))
+        cons['senses'].append("L")
+        cons['rhs'].append(n_altered_nnz - 1.0)
+
+        mip.linear_constraints.add(**cons)
         return
 
 
 class _RecourseBuilderPythonMIP(RecourseBuilder):
+
     def __init__(self, *args, **kwargs):
         ## todo: not sure what to put for this. let's talk about what the cplex display flag does.
         self._set_mip_display = lambda mip, display_flag: True #_set_mip_display(self, mip, display)
