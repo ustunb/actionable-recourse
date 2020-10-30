@@ -569,11 +569,11 @@ class RecourseBuilder(object):
 
             :param display_flag: the verbosity of the solver.
 
-            :return: flipset: A set of actionsets.
+            :return: flipset: A collection of actions.
         """
-        assert self._mip is not None, 'must first initialize recourse IP'
-        assert (isinstance(total_items, int) and total_items >= 1) or (isinstance(total_items, float) and total_items == float('inf'))
-        assert enumeration_type in self._valid_enumeration_types
+        assert self._mip is not None, "recourse MIP is not initialized"
+        assert total_items == float('inf') or (isinstance(total_items, int) and total_items >= 1), "total items must be a whole number or float('inf')"
+        assert enumeration_type in self._valid_enumeration_types, 'enumeration_type must be one of the following values: %r' % self._valid_enumeration_types
 
         # set the remove solution method
         if enumeration_type == 'mutually_exclusive':
@@ -602,7 +602,7 @@ class RecourseBuilder(object):
             k += 1
 
         if self.print_flag:
-            print('obtained %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
+            print('found %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
 
         return all_info
 
@@ -944,34 +944,34 @@ class _RecourseBuilderCPX(RecourseBuilder):
                     off_idx[j] = action_off_names[j]
         """
 
-        feature_off_idxs = self._mip_indices['nullify_ind_names']
-        feature_off_vals = np.array(mip.solution.get_values(feature_off_idxs))
+        off_names = self._mip_indices['nullify_ind_names']
+        off_vals = np.array(mip.solution.get_values(off_names))
 
-        ## if the "off index" are off (i.e. = 0), that means the action is "on"
-        on_idx = np.isclose(feature_off_vals, 0.0)
+        ## if the "off variable" = 0, this means that the action is "on"
+        on_idx = np.isclose(off_vals, 0.0)
+        n_on = np.sum(on_idx)
 
         ## array where con_val[i] = 1 if feature is off, -1 if feature is on.
-        con_vals = np.ones(len(feature_off_idxs), dtype = np.float_)
+        con_vals = np.ones(len(off_vals), dtype = np.float_)
         con_vals[on_idx] = -1.0
 
         ## one minus number of features that are off.
         cons = {
-            'lin_expr': [SparsePair(ind = feature_off_idxs, val = con_vals.tolist())],
+            'lin_expr': [SparsePair(ind = off_names, val = con_vals.tolist())],
             'senses': ['L'],
-            'rhs': [np.sum(~on_idx) - 1.0],
+            'rhs': [n_on - 1.0],
         }
 
         # add constraint to ensure that
         # sum_{a[j] != 0, k[j]} u[j][k] <  |a[j] != 0| - 1
         u_names = self._mip_indices['action_ind_names']
-        u = mip.solution.get_values(u_names)
-        u_names_altered = [u_names[k] for k in np.flatnonzero(u)]
-        u_names_altered_nnz = list(set(u_names_altered) - set(feature_off_idxs))
-        n_altered_nnz = len(u_names_altered_nnz)
+        u_nnz = np.flatnonzero(mip.solution.get_values(u_names))
+        altered_names = set([u_names[k] for k in u_nnz]) - set(off_names)
+        n_altered = len(altered_names)
 
-        cons['lin_expr'].append(SparsePair(ind = u_names_altered_nnz, val = [1.0] * n_altered_nnz))
+        cons['lin_expr'].append(SparsePair(ind = list(altered_names), val = [1.0] * n_altered))
         cons['senses'].append("L")
-        cons['rhs'].append(n_altered_nnz - 1.0)
+        cons['rhs'].append(n_altered - 1.0)
 
         mip.linear_constraints.add(**cons)
         return
