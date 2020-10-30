@@ -911,14 +911,17 @@ class _RecourseBuilderCPX(RecourseBuilder):
         :return:
         """
         mip = self._mip
-        ## "action_off_names" ex: ['u[3][0]', 'u[4][0]'...] are variables that indicate an action is "off".
+
+        # "action_off_names" ex: ['u[3][0]', 'u[4][0]'...] are variables that indicate an action is "off".
         feature_off_idxs = self._mip_indices['action_off_names']
-        ## get the values assigned by the solver.
-        values_of_off_indices = np.array(mip.solution.get_values(feature_off_idxs))
-        ## if the "off index" are off (i.e. = 0), that means the action is "on"
-        on_idx = np.flatnonzero(np.isclose(values_of_off_indices, 0.0))
-        ## setting LB = 1 for the "off index" means that the action has to stay "off"
+        feature_off_vals = np.array(mip.solution.get_values(feature_off_idxs))
+
+        # if the "off index" are off (i.e. = 0), that means the action is "on"
+        on_idx = np.flatnonzero(np.isclose(feature_off_vals, 0.0))
+
+        # setting LB = 1 for the "off index" means that the action has to stay "off"
         mip.variables.set_lower_bounds([(feature_off_idxs[j], 1.0) for j in on_idx])
+
         return
 
 
