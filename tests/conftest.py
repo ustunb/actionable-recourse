@@ -3,8 +3,9 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from recourse import *
-from recourse.paths import *
-from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, _SOLVER_TYPE_PYTHON_MIP
+from recourse.defaults import SUPPORTED_SOLVERS, _SOLVER_TYPE_CPX, \
+    _SOLVER_TYPE_PYTHON_MIP, test_dir
+
 
 @pytest.fixture(params = ['german', 'german-cat'])
 def data(request):
@@ -112,7 +113,7 @@ def features(request, data, classifier):
 
 @pytest.fixture(params = SUPPORTED_SOLVERS)
 def recourse_builder(request, classifier, action_set):
-    action_set.set_alignment(classifier)
+    action_set._align(classifier)
     rb = RecourseBuilder(solver = request.param,
                          action_set = action_set,
                          clf = classifier)
@@ -134,7 +135,7 @@ def flipset(request, classifier, action_set, denied_individual):
 
 @pytest.fixture
 def recourse_builder_cpx(classifier, action_set):
-    action_set.set_alignment(classifier)
+    action_set._align(classifier)
     rb = RecourseBuilder(solver = _SOLVER_TYPE_CPX,
                          action_set = action_set,
                          clf = classifier)
@@ -144,7 +145,7 @@ def recourse_builder_cpx(classifier, action_set):
 
 @pytest.fixture
 def recourse_builder_python_mip(classifier, action_set):
-    action_set.set_alignment(classifier)
+    action_set._align(classifier)
     rb = RecourseBuilder(solver = _SOLVER_TYPE_PYTHON_MIP,
                          action_set = action_set,
                          clf = classifier)

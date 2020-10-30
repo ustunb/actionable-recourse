@@ -2,7 +2,7 @@ This folder contains notebooks to showcase the tools in `actionable-recourse` an
 
 ## Notebooks
 
-### [Reporting Recourse](/ex_01_quickstart.ipynb) 
+### [Overview](/ex_01_quickstart.ipynb) 
 
 This notebook shows how to produce a flipset – i.e., a list of actions that allow a person to change the prediction of a model.  
 

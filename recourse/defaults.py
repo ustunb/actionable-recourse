@@ -35,7 +35,6 @@ def _check_solver_python_mip():
 _SOLVER_TYPE_CPX = 'cplex'
 _SOLVER_TYPE_PYTHON_MIP = 'python-mip'
 
-# Set Default Solver
 def set_default_solver():
 
     if _check_solver_cpx():

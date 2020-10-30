@@ -47,7 +47,7 @@ def test_align(data, coefficients):
     assert np.isnan(a.compatible).all()
 
     # aligning sets compatability and flip direction
-    a.set_alignment(coefficients)
+    a._align(coefficients)
     assert a.alignment_known == True
     assert not np.isnan(a.flip_direction).any()
     assert not np.isnan(a.compatible).any()
@@ -59,7 +59,7 @@ def test_align(data, coefficients):
 
     # flipping coefficients changes the flip direction
     b = ActionSet(X = data['X'])
-    b.set_alignment(-coefficients)
+    b._align(-coefficients)
     assert np.all(fd == -np.array(b.flip_direction))
 
 

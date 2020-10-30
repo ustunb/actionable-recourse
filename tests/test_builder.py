@@ -48,7 +48,7 @@ def test_rb_onehot_encoding(data, solver):
         # setup action set
         a = ActionSet(X)
         a.add_constraint('subset_limit', names = names, lb = 0, ub = 1)
-        a.set_alignment(coefficients = coefs, intercept = intercept)
+        a._align(coefficients = coefs, intercept = intercept)
         rb = RecourseBuilder(action_set = a, coefficients = coefs, intercept = intercept, solver = solver)
         for j in range(1, k):
 
@@ -80,7 +80,7 @@ def test_rb_fit(data, recourse_builder, features):
 
 def test_empty_fit(data, features, action_set, coefficients, classifier, recourse_builder):
     names = data['X'].columns.tolist()
-    action_set.set_alignment(classifier)
+    action_set._align(classifier)
     direction = np.sign(coefficients)
     ## force everything to be the opposite direction.
     for n, d in zip(names, direction):
