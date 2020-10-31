@@ -80,7 +80,7 @@ class RecourseBuilder(object):
         self._max_items = self.n_actionable
 
         self._apriori_infeasible = False ## useful if we want to hardcode conditions where
-                                         ## we won't run the MIP, like empty actionsets.
+        ## we won't run the MIP, like empty actionsets.
         # attach features
         self._x = None
         if x is not None:
@@ -550,30 +550,34 @@ class RecourseBuilder(object):
 
     def populate(self, total_items = 10, enumeration_type = 'distinct_subsets', time_limit = None, node_limit = None, display_flag = False):
         """
-        Repeatedly solve recourse problem to recover successive optima.
+        Repeatedly solves recourse MIP to return successive minimal-cost actions.
 
-            :param total_items: int. The number of different actionsets to return.
+            :param total_items: int. the maximum number of actions required. set to float('inf')
 
             :param enumeration_type str: either {"mutually_exclusive", "distinct_subsets"}.
-                Specifies how to generate different actions to suggest to flip a prediction.
-                  * "mutually_exclusive": each actionset contains wholly different features than those previously used.
-                        ex) actionset_i is: change features [1, 4, 8].
-                            actionset_{j!=i} does not contain actions on features 1, 4 or 8.
-                  * "distinct_subsets": no actionset repeats the _same_ feature combination.
-                        ex) actionset_i is: change features [1, 4, 8].
-                            actionset_{j!=i} does not contain actions on features 1, 4, and 8.
+                                        specifies the type of enumeration procedure
+                  * "mutually_exclusive": each action alters different features
+                        ex) a[t] and a[t'] will change different features
+                  * "distinct_subsets": each action alters a unique subset of features.
+                        ex) a[t] changes [1, 2] then a[t'] can change [1, 2, 3]
 
-            :param time_limit: the time limit on the solver.
+            :param time_limit: the time limit on the solver (seconds).
 
-            :param node_limit: the node limit on the solver.
+            :param node_limit: the node limit on the solver (integer).
 
             :param display_flag: the verbosity of the solver.
 
-            :return: flipset: A collection of actions.
+            :return: solutions: list of solution dicts.
+            each solution dict contains an optimal action, its cost, and other information pulled from recourse MIP
         """
-        assert self._mip is not None, "recourse MIP is not initialized"
-        assert total_items == float('inf') or (isinstance(total_items, int) and total_items >= 1), "total items must be a whole number or float('inf')"
-        assert enumeration_type in self._valid_enumeration_types, 'enumeration_type must be one of the following values: %r' % self._valid_enumeration_types
+        assert self._mip is not None, \
+            "recourse MIP is not initialized"
+
+        assert total_items == float('inf') or (isinstance(total_items, int) and total_items >= 1), \
+            "total items must be an integer value >= 1 or float('inf')"
+
+        assert enumeration_type in self._valid_enumeration_types, \
+            'enumeration_type must be one of the following values: %r' % self._valid_enumeration_types
 
         # set the remove solution method
         if enumeration_type == 'mutually_exclusive':
@@ -588,23 +592,24 @@ class RecourseBuilder(object):
 
         # enumerate soluitions
         k = 0
-        all_info = []
+        solutions = []
         populate_start_time = time.process_time()
         while k < total_items:
             self.solve_mip()
-            info = self.solution_info
-            if not info['feasible']:
-                if self.print_flag:
-                    print('recovered all minimum-cost items')
+            s = self.solution_info
+            if not s['feasible']:
                 break
-            all_info.append(info)
+            solutions.append(s)
             remove_solution()
             k += 1
 
         if self.print_flag:
-            print('found %d items in %1.1f seconds' % (k, time.process_time() - populate_start_time))
+            print('found %d minimal-cost actions in %1.1f seconds' % (k, time.process_time() - populate_start_time))
+            if not s['feasible']:
+                print('there are no other minimal-cost actions that alter between %k and %k items for this action set/enumeration_type' % (self.min_items, self.max_items))
 
-        return all_info
+
+        return solutions
 
 
 class _RecourseBuilderCPX(RecourseBuilder):
@@ -770,7 +775,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
                 cost_constraints['lin_expr'].extend([
                     SparsePair(ind = info['cost_var_name'] + info['action_ind_names'], val = [-1.0] + info['costs']),
                     SparsePair(ind = indices['max_cost_var_name'] + info['cost_var_name'], val = [1.0, -1.0])
-                ])
+                    ])
 
             cons.add(**cost_constraints)
 
@@ -960,7 +965,7 @@ class _RecourseBuilderCPX(RecourseBuilder):
             'lin_expr': [SparsePair(ind = off_names, val = con_vals.tolist())],
             'senses': ['L'],
             'rhs': [n_on - 1.0],
-        }
+            }
 
         # add constraint to ensure that
         # sum_{a[j] != 0, k[j]} u[j][k] <  |a[j] != 0| - 1
@@ -1011,13 +1016,13 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         # define variables a[j]
         mip.a = {
             a_j: mip.add_var(
-                name=a_j,
-                lb=indices['action_lb'][j],
-                ub=indices['action_ub'][j],
-                var_type='C',
-            )
+                    name=a_j,
+                    lb=indices['action_lb'][j],
+                    ub=indices['action_ub'][j],
+                    var_type='C',
+                    )
             for j, a_j in enumerate(indices['action_var_names'])
-        }
+            }
 
         # sum_j w[j] a[j] > -score
         ## TODO CHECK: this was a SparsePair in CPLEX... Python-Mip doesn't have this object.
@@ -1025,8 +1030,8 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         # y_desired = +1 -> sum_j w[j]*(x[j]+a[j]) > 0 -> sum_j w[j] a[j] > -score
         # y_desired = -1 -> sum_j w[j]*(x[j]+a[j]) < 0 -> sum_j w[j] a[j] < -score
         score_with_actions = xsum(
-            mip.a[a_j] * indices['coefficients'][j] for j, a_j in enumerate(indices['action_var_names'])
-        )
+                mip.a[a_j] * indices['coefficients'][j] for j, a_j in enumerate(indices['action_var_names'])
+                )
         if self.action_set.y_desired > 0:
             mip += score_with_actions >= -self.score(), 'flip_prediction'
         else:
@@ -1035,8 +1040,8 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         # define indicators u[j][k] = 1 if a[j] = actions[j][k]
         mip.u = {
             ind_name: mip.add_var(name=ind_name, var_type='B')
-                for ind_name in indices['action_ind_names']
-        }
+            for ind_name in indices['action_ind_names']
+            }
 
         # restrict a[j] to feasible values using a 1 of K constraint setup
         for info in build_info.values():
@@ -1052,9 +1057,9 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
 
             # declare indicator variables as SOS set
             mip.add_sos(
-                sos=[(mip.u[info['action_ind_names'][k]], info['actions'][k]) for k in range(len(info['actions']))],
-                sos_type=1,
-            )
+                    sos=[(mip.u[info['action_ind_names'][k]], info['actions'][k]) for k in range(len(info['actions']))],
+                    sos_type=1,
+                    )
 
         # limit number of features per action
         #
@@ -1084,8 +1089,8 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
         if cost_type in ('total', 'local'):
             indices.pop('cost_var_names')
             objval_pairs = list(
-                chain(*[list(zip(v['action_ind_names'], v['costs'])) for v in build_info.values()])
-            )
+                    chain(*[list(zip(v['action_ind_names'], v['costs'])) for v in build_info.values()])
+                    )
             self.cost_lookup_for_sol = dict(objval_pairs)
             mip.objective = xsum(mip.u[k] * c for k, c in objval_pairs)
 
@@ -1097,7 +1102,7 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
             mip.c = {
                 c: mip.add_var(name=c, var_type='C', obj=indices['epsilon'])
                 for c in indices['cost_var_names']
-            }
+                }
 
             for info in build_info.values():
                 ## def cost
@@ -1189,7 +1194,7 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
                 'iterations': np.nan,
                 'nodes_processed': np.nan,
                 'nodes_remaining': np.nan,
-            })
+                })
 
         return info
 
@@ -1251,4 +1256,4 @@ class _RecourseBuilderPythonMIP(RecourseBuilder):
 BUILDER_TO_SOLVER = {
     _SOLVER_TYPE_CPX: _RecourseBuilderCPX,
     _SOLVER_TYPE_PYTHON_MIP: _RecourseBuilderPythonMIP
-}
+    }
