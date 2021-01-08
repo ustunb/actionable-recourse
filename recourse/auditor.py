@@ -106,7 +106,7 @@ class RecourseAuditor(object):
             self.builder.x = U[idx, :]
             info = self.builder.fit()
             info['idx'] = idx
-            output.append({k: info[k] for k in ['feasible', 'cost', 'idx']})
+            output.append({k: info[k] for k in ['feasible', 'cost', 'idx', 'actions']})
             pbar.update(1)
         pbar.close()
 
